@@ -1,0 +1,194 @@
+* TSMC 65nm Miller OTA Simulation
+* Sylvain Favresse & Grégoire Brandsteert
+* November 2025
+*-----------------------------------------------
+
+************************************
+*	Library & Technology settings
+************************************
+
+* Library containing the transistor model from the foundry
+.lib '/dir/TECHNOLOGY/cds2024/TSMC-N65/CMOS/LP/pdk/models/eldo/toplevel.eldo' tt_lib
+
+*******************************
+*	Options
+*******************************
+
+* Temperature
+.temp 25
+
+* To tune the accuracy of the simulation (related to the numerical methods, beyond the scope of this course; check the manual)
+.option EPS = 1e-6
+
+*******************************
+*	Design Parameters
+*******************************
+
+*** Supply voltage
+.param vdd_val = 1.2
+
+*** Load capacitance
+.param Cl_val = 10p
+
+*** Transistor dimensions
+
+.param W1 = 3.10u
+.param L1 = 2u
+.param W2 = W1
+.param L2 = L1
+
+.param W3 = 0.45u
+.param L3 = 2u
+.param W4 = W3
+.param L4 = L3
+
+.param W5 = 6.72u
+.param L5 = 2u
+
+.param W6 = 7.43u
+.param L6 = 2u
+
+.param W7 = 0.99u
+.param L7 = 2u
+
+.param W8 = 7.43u
+.param L8 = 2u
+
+.param Cf_val = 2.36p
+
+*** Bias point
+
+.param VIN = 0.35
+.param IBIAS = 12.38u
+
+*** AC simulation parameters
+
+.param V0 = 5m
+.param fmin = 1
+.param fmax = 1e9
+.param ac_dec = 20
+
+*******************************
+*	Device under test
+*******************************
+
+***** Miller OTA
+
+* Reminder
+* xMN D G S B
+
+xM1 d13 INm s12 s12 pch_lvt_mac w = W1 l = L1
+xM2 n1  INp s12 s12 pch_lvt_mac w = W2 l = L2
+
+xM3 d13 d13 GND GND nch_lvt_mac w = W3 l = L3
+xM4 n1  d13 GND GND nch_lvt_mac w = W4 l = L4
+
+xM5 OUT n1  GND GND nch_lvt_mac w = W5 l = L5
+
+xM6 OUT nb  VDD VDD pch_lvt_mac w = W6 l = L6
+xM7 s12 nb  VDD VDD pch_lvt_mac w = W7 l = L7
+xM8 nb  nb  VDD VDD pch_lvt_mac w = W8 l = L8
+
+Cf n1 OUT Cf_val
+
+* Load capacitance
+Cload OUT GND Cl_val
+	
+**********************************
+*	Supply and stimuli
+**********************************
+
+*** Ideal current source	
+IIbias nb GND DC IBIAS
+
+*** Ground
+* absolute voltage reference
+.connect GND 0
+
+*** Supply voltage
+VVDD VDD GND DC vdd_val
+
+*** Input Voltages Sources
+
+***** DC & AC *****
+
+VVINp INp GND DC VIN AC +V0
+VVINm INm GND DC VIN AC -V0
+
+**********************************
+*	Simulations and Measurements
+**********************************
+
+***** DC *****
+
+.OP
+
+.extract DC label=IN V(INp)
+.extract DC label=VOUT V(OUT)
+.extract DC label=VSG12 -VGS(xM1.MAIN)
+.extract DC label=VSD1 -VDS(xM1.MAIN)
+.extract DC label=VSD2 -VDS(xM2.MAIN)
+.extract DC label=VGS34 VGS(xM3.MAIN)
+.extract DC label=VDS3 VDS(xM3.MAIN)
+.extract DC label=VDS4 VDS(xM4.MAIN)
+.extract DC label=VGS5 VGS(xM5.MAIN)
+.extract DC label=VDS5 VDS(xM5.MAIN)
+.extract DC label=VSG6 -VGS(xM6.MAIN)
+.extract DC label=VSD6 -VDS(xM6.MAIN)
+.extract DC label=VSG7 -VGS(xM7.MAIN)
+.extract DC label=VSD7 -VDS(xM7.MAIN)
+.extract DC label=VSG8 -VGS(xM8.MAIN)
+.extract DC label=VSD8 -VDS(xM8.MAIN)
+
+*** Currents
+.extract DC label=ID1 I(xM1.MAIN.S)
+.extract DC label=ID2 I(xM2.MAIN.S)
+.extract DC label=ID3 I(xM3.MAIN.D)
+.extract DC label=ID4 I(xM4.MAIN.D)
+.extract DC label=ID5 I(xM5.MAIN.D)
+.extract DC label=ID6 I(xM6.MAIN.S)
+.extract DC label=ID7 I(xM7.MAIN.S)
+.extract DC label=ID8 I(xM8.MAIN.S)
+
+* (gm/ID)'s 
+.extract DC label=gm_over_ID1 'gm(xM1.MAIN)/ID1'
+.extract DC label=gm_over_ID2 'gm(xM2.MAIN)/ID2'
+.extract DC label=gm_over_ID3 'gm(xM3.MAIN)/ID3'
+.extract DC label=gm_over_ID4 'gm(xM4.MAIN)/ID4'
+.extract DC label=gm_over_ID6 'gm(xM6.MAIN)/ID6'
+.extract DC label=gm_over_ID7 'gm(xM7.MAIN)/ID5'
+
+* Power consumption
+.extract DC label=Power 'V(VDD)*(-I(VVDD)-ID8)'
+
+* Region of operation
+.extract DC label=M1 opmode(xM1.MAIN)
+.extract DC label=M2 opmode(xM2.MAIN)
+.extract DC label=M3 opmode(xM3.MAIN)
+.extract DC label=M4 opmode(xM4.MAIN)
+.extract DC label=M5 opmode(xM5.MAIN)
+.extract DC label=M6 opmode(xM6.MAIN)
+.extract DC label=M7 opmode(xM7.MAIN)
+.extract DC label=M8 opmode(xM8.MAIN)
+
+***** AC *****
+
+
+.AC dec ac_dec fmin fmax
+
+*** Gain
+.defwave Av = 'v(OUT)/(v(INp)-v(INm))'
+.defwave Av1 = 'v(n1)/(v(INp)-v(INm))'
+.defwave Av2 = 'v(OUT) / v(n1)'
+
+.extract AC label=Av0 'max(wdb(Av))'
+*** Transition Frequency
+.extract AC label=fT 'xthres(wdb(Av),0)'
+*** Phase Margin
+.extract AC label=Phase_Margin '180 - yval(wp(Av),1) + xycond(wp(Av),wdb(Av)<0)'
+
+*** Bode diagram (amplitude and phase)
+.plot AC w(Av1) w(Av2)
+.plot AC w(Av)
+
+
