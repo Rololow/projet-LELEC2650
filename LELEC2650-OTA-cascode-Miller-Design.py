@@ -8,7 +8,7 @@ Sylvain Favresse, 2025
 
 netlist : 
 pair diff :
-M1 N003 VIN- N005 N005 PMOS
+M1 N005 VIN- N003 N003 PMOS
 M2 N004 VIN+ N003 N003 PMOS
 M3 N002 N001 VDD VDD PMOS
 M4 N001 N001 VDD VDD PMOS
@@ -71,10 +71,13 @@ L11= L9; L12= L9
 L13= L9; L14= L9; L15= L9
 
 gmid1 = 18; gmid2 = gmid1
-gmid3 = 12; gmid4 = gmid3; gmid5 = gmid3; gmid6 = gmid3
-gmid8 = 8; gmid7 = gmid8
+gmid3 = 15; gmid4 = gmid3; 
+gmid5 = 12; gmid6 = gmid5
+gmid8 = 15; gmid7 = gmid8
 gmid9 = 10; gmid10 = gmid9
-gmid11 = 10; gmid12 = gmid11; gmid13 = gmid11; gmid14 = gmid11; gmid15 = gmid11
+gmid11 = 10; gmid12 = gmid11; 
+gmid13 = 15; 
+gmid14 = 15; gmid15 = gmid14
 
 M1 = pch_lvt; M2 = pch_lvt
 M3 = pch_lvt; M4 = pch_lvt
@@ -223,10 +226,15 @@ vgs14 = float(scint.interp1d(M14['GMID'], M14['VGS'])(gmid14))
 vgs15 = float(scint.interp1d(M15['GMID'], M15['VGS'])(gmid15))
 
 vdsat1 = - float(scint.interp1d(M1['GMID'], M1['VDSAT'])(gmid1))
-vdsat3 = float(scint.interp1d(M3['GMID'], M3['VDSAT'])(gmid3))
+vdsat3 = - float(scint.interp1d(M3['GMID'], M3['VDSAT'])(gmid3))
 vdsat5 = float(scint.interp1d(M5['GMID'], M5['VDSAT'])(gmid5))
-vdsat6 = - float(scint.interp1d(M6['GMID'], M6['VDSAT'])(gmid6))
-vdsat7 = - float(scint.interp1d(M7['GMID'], M7['VDSAT'])(gmid7))
+vdsat6 = float(scint.interp1d(M6['GMID'], M6['VDSAT'])(gmid6))
+vdsat7 = float(scint.interp1d(M7['GMID'], M7['VDSAT'])(gmid7))
+vdsat8 = float(scint.interp1d(M8['GMID'], M8['VDSAT'])(gmid8))
+vdsat9 = - float(scint.interp1d(M9['GMID'], M9['VDSAT'])(gmid9))
+vdsat10 = float(scint.interp1d(M10['GMID'], M10['VDSAT'])(gmid10))
+vdsat11 = - float(scint.interp1d(M11['GMID'], M11['VDSAT'])(gmid11))
+
 vea1 = float(scint.interp1d(M1['GMID'], M1['VEA'])(gmid1)) # only valid because techno extraction was done with same L
 vea3 = float(scint.interp1d(M3['GMID'], M3['VEA'])(gmid3)) # only valid because techno extraction was done with same L
 vea5 = float(scint.interp1d(M5['GMID'], M5['VEA'])(gmid5)) # only valid because techno extraction was done with same L
@@ -237,11 +245,11 @@ vea10 = float(scint.interp1d(M10['GMID'], M10['VEA'])(gmid10)) # only valid beca
 
 IBIAS = ID15
 
-#vin_max = VDD - vdsat7 - vsg1
-#vin_min = vgs3 + vdsat1 - vsg1
+vin_max = VDD - vdsat11 - vsg1
+vin_min = vdsat7 + vdsat1 - vsg1
 
-#vout_max = VDD - vdsat6
-#vout_min = vdsat5
+vout_max = VDD - vdsat9
+vout_min = vdsat10
 
 area = W1*L1 + W2*L2 + W3*L3 + W4*L4 + W5*L5 + W6*L6 + W7*L7 + W8*L8 + W9*L9 + W10*L10 + W11*L11 + W12*L12 + W13*L13 + W14*L14 + W15*L15
 power = VDD * (2*ID1 + ID3 + ID3 + ID9 + ID12 + ID15)
@@ -328,8 +336,11 @@ print('M13:   W = {:2.2f} um; L = {:2.2f} um'.format(W13*1e6,L13*1e6))
 print('M14:   W = {:2.2f} um; L = {:2.2f} um'.format(W14*1e6,L14*1e6))
 print('M15:   W = {:2.2f} um; L = {:2.2f} um'.format(W15*1e6,L15*1e6))
 print('IBIAS: {:2.2f} uA'.format(IBIAS*1e6))
-#print('VIN:   {:2.2f} V'.format(VDD-vsg7-vsg1))
-#print('VOUT:  {:2.2f} V'.format(VDD-vsg6))
+print('VIN MAX:   {:2.2f} V'.format(vin_max))
+print('VIN MIN:   {:2.2f} V'.format(vin_min))
+print('VDSAT1:   {:2.2f} V'.format(vdsat1))
+print('VIN:   {:2.2f} V'.format(vin_min + (vin_max - vin_min)/2))
+print('VOUT:  {:2.2f} V'.format(vout_min + (vout_max - vout_min)/2))
 print('Cf:    {:2.2f} pF'.format(Cf*1e12))
 print('')
 print('===================== Miller OTA estimated performance =====================')

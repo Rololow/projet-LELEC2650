@@ -51,7 +51,7 @@
 .param W2 = W1
 .param L2 = L1
 
-.param W3 = 1.05u
+.param W3 = 1.77u
 .param L3 = 2u
 .param W4 = W3
 .param L4 = L3
@@ -61,7 +61,7 @@
 .param W6 = W5
 .param L6 = 2u
 
-.param W7 = 0.35u
+.param W7 = 1.6u
 .param L7 = 2u
 .param W8 = W7
 .param L8 = 2u
@@ -74,18 +74,18 @@
 .param L11 = 2u
 .param W12 = 1.45u
 .param L12 = 2u
-.param W13 = 0.56u
+.param W13 = 1.6u
 .param L13 = 2u
-.param W14 = 0.28u
+.param W14 = 0.8u
 .param L14 = 2u
-.param W15 = 0.28u
+.param W15 = 0.8u
 .param L15 = 2u
 
 .param Cf_val = 2.3p
 
 *** Bias point
 
-.param VIN = 0.35
+.param VIN = 0.26
 .param IBIAS = 0.8u
 
 *** AC simulation parameters
@@ -104,52 +104,51 @@
 * Reminder
 * xMN D G S B
 
-"""
-netlist : 
-pair diff :
-M1 N003 VIN- N005 N005 PMOS
-M2 N004 VIN+ N003 N003 PMOS
-M3 N002 N001 VDD VDD PMOS
-M4 N001 N001 VDD VDD PMOS
-M5 N004 VBIAS1 N002 N002 NMOS
-M6 N005 VBIAS1 N001 N001 NMOS
-M7 0 VBIAS2 N005 N005 NMOS
-M8 0 VBIAS2 N004 N004 NMOS
-M9 OUT VBIAS3 VDD VDD PMOS
-M10 0 N002 OUT OUT NMOS
-C1 OUT N002 Cm
-C2 OUT 0 CL
-M11 N003 VBIAS3 VDD VDD PMOS
-M12 VBIAS3 VBIAS3 VDD VDD PMOS
-M13 0 VBIAS2 VBIAS3 VBIAS3 NMOS
-M14 0 VBIAS2 VBIAS2 VBIAS2 NMOS
-M15 VBIAS2 VBIAS1 VBIAS1 VBIAS1 NMOS
-IB VDD VBIAS1 I
-.model NMOS NMOS
-.model PMOS PMOS
-"""
 
-xM1 N003 INm N005 N005 PMOS W=W1 L=L1
-xM2 N004 INp N003 N003 PMOS W=W2 L=L2
+* netlist : 
+* pair diff :
+* M1 N005 VIN- N003 N003 pch_lvt_mac
+* M2 N004 VIN+ N003 N003 pch_lvt_mac
+* * M3 N002 N001 VDD VDD pch_lvt_mac
+* M4 N001 N001 VDD VDD pch_lvt_mac
+* M5 N004 VBIAS1 N002 N002 nch_lvt_mac
+* M6 N005 VBIAS1 N001 N001 nch_lvt_mac
+* M7 0 VBIAS2 N005 N005 nch_lvt_mac
+* M8 0 VBIAS2 N004 N004 nch_lvt_mac
+* M9 OUT VBIAS3 VDD VDD pch_lvt_mac
+* M10 0 N002 OUT OUT nch_lvt_mac
+* C1 OUT N002 Cm
+* C2 OUT 0 CL
+* M11 N003 VBIAS3 VDD VDD pch_lvt_mac
+* M12 VBIAS3 VBIAS3 VDD VDD pch_lvt_mac
+* M13 0 VBIAS2 VBIAS3 VBIAS3 nch_lvt_mac
+* M14 0 VBIAS2 VBIAS2 VBIAS2 nch_lvt_mac
+* M15 VBIAS2 VBIAS1 VBIAS1 VBIAS1 nch_lvt_mac
+* IB VDD VBIAS1 I
+* .model nch_lvt_mac nch_lvt_mac
+* .model pch_lvt_mac pch_lvt_mac
 
-xM3 N002 n1 VDD VDD PMOS W=W3 L=L3
-xM4 n1 n1 VDD VDD PMOS W=W4 L=L4
-xM5 N004 VBIAS1 N002 N002 NMOS W=W5 L=L5
-xM6 N005 VBIAS1 N001 N001 NMOS W=W6 L=L6
+xM1 N005 INm N003 N003 pch_lvt_mac W=W1 L=L1
+xM2 N004 INp N003 N003 pch_lvt_mac W=W2 L=L2
 
-xM7 GND VBIAS2 N005 N005 NMOS W=W7 L=L7
-xM8 GND VBIAS2 N004 N004 NMOS W=W8 L=L8
+xM3 N002 n1 VDD VDD pch_lvt_mac W=W3 L=L3
+xM4 n1 n1 VDD VDD pch_lvt_mac W=W4 L=L4
+xM5 N004 VBIAS1 N002 N002 nch_lvt_mac W=W5 L=L5
+xM6 N005 VBIAS1 N001 N001 nch_lvt_mac W=W6 L=L6
 
-xM9 OUT VBIAS3 VDD VDD PMOS W=W9 L=L9
-xM10 GND N002 OUT OUT NMOS W=W10 L=L10
+xM7 GND VBIAS2 N005 N005 nch_lvt_mac W=W7 L=L7
+xM8 GND VBIAS2 N004 N004 nch_lvt_mac W=W8 L=L8
 
-xM11 N003 VBIAS3 VDD VDD PMOS W=W11 L=L11
-xM12 VBIAS3 VBIAS3 VDD VDD PMOS W=W12 L=L12
+xM9 OUT VBIAS3 VDD VDD pch_lvt_mac W=W9 L=L9
+xM10 GND N002 OUT OUT nch_lvt_mac W=W10 L=L10
 
-xM13 GND VBIAS2 VBIAS3 VBIAS3 NMOS W=W13 L=L13
-xM14 GND VBIAS2 VBIAS2 VBIAS2 NMOS W=W14 L=L14
-xM15 VBIAS2 VBIAS1 VBIAS1 VBIAS1 NMOS W=W15 L=L15
-Cf OUT n2 Cf_val
+xM11 N003 VBIAS3 VDD VDD pch_lvt_mac W=W11 L=L11
+xM12 VBIAS3 VBIAS3 VDD VDD pch_lvt_mac W=W12 L=L12
+
+xM13 GND VBIAS2 VBIAS3 VBIAS3 nch_lvt_mac W=W13 L=L13
+xM14 GND VBIAS2 VBIAS2 VBIAS2 nch_lvt_mac W=W14 L=L14
+xM15 VBIAS2 VBIAS1 VBIAS1 VBIAS1 nch_lvt_mac W=W15 L=L15
+Cf OUT N002 Cf_val
 
 * Load capacitance
 Cload OUT GND Cl_val
@@ -159,7 +158,7 @@ Cload OUT GND Cl_val
 **********************************
 
 *** Ideal current source	
-IIbias nb GND DC IBIAS
+IIbias VDD VBIAS1 DC IBIAS
 
 *** Ground
 * absolute voltage reference
@@ -283,5 +282,3 @@ VVINm INm GND DC VIN AC -V0
 *** Bode diagram (amplitude and phase)
 .plot AC w(Av1) w(Av2)
 .plot AC w(Av)
-
-
