@@ -22,6 +22,20 @@
 
 *******************************
 *	Design Parameters
+
+* M1/M2: W = 3.01 um; L = 2.00 um
+* M3/M4: W = 1.05 um; L = 2.00 um
+* M5/M6: W = 0.43 um; L = 2.00 um
+* M7/M8: W = 0.35 um; L = 2.00 um
+* M9:    W = 8.72 um; L = 2.00 um
+* M10:   W = 3.39 um; L = 2.00 um
+* M11:   W = 1.45 um; L = 2.00 um
+* M12:   W = 1.45 um; L = 2.00 um
+* M13:   W = 0.56 um; L = 2.00 um
+* M14:   W = 0.28 um; L = 2.00 um
+* M15:   W = 0.28 um; L = 2.00 um
+* IBIAS: 0.80 uA
+* Cf:    2.30 pF
 *******************************
 
 *** Supply voltage
@@ -32,34 +46,47 @@
 
 *** Transistor dimensions
 
-.param W1 = 3.10u
+.param W1 = 3.01u
 .param L1 = 2u
 .param W2 = W1
 .param L2 = L1
 
-.param W3 = 0.45u
+.param W3 = 1.05u
 .param L3 = 2u
 .param W4 = W3
 .param L4 = L3
 
-.param W5 = 6.72u
+.param W5 = 0.43u
 .param L5 = 2u
-
-.param W6 = 7.43u
+.param W6 = W5
 .param L6 = 2u
 
-.param W7 = 0.99u
+.param W7 = 0.35u
 .param L7 = 2u
-
-.param W8 = 7.43u
+.param W8 = W7
 .param L8 = 2u
 
-.param Cf_val = 2.36p
+.param W9 = 8.72u
+.param L9 = 2u
+.param W10 = 3.39u
+.param L10 = 2u
+.param W11 = 1.45u
+.param L11 = 2u
+.param W12 = 1.45u
+.param L12 = 2u
+.param W13 = 0.56u
+.param L13 = 2u
+.param W14 = 0.28u
+.param L14 = 2u
+.param W15 = 0.28u
+.param L15 = 2u
+
+.param Cf_val = 2.3p
 
 *** Bias point
 
 .param VIN = 0.35
-.param IBIAS = 12.38u
+.param IBIAS = 0.8u
 
 *** AC simulation parameters
 
@@ -77,19 +104,52 @@
 * Reminder
 * xMN D G S B
 
-xM1 d13 INm s12 s12 pch_lvt_mac w = W1 l = L1
-xM2 n1  INp s12 s12 pch_lvt_mac w = W2 l = L2
+"""
+netlist : 
+pair diff :
+M1 N003 VIN- N005 N005 PMOS
+M2 N004 VIN+ N003 N003 PMOS
+M3 N002 N001 VDD VDD PMOS
+M4 N001 N001 VDD VDD PMOS
+M5 N004 VBIAS1 N002 N002 NMOS
+M6 N005 VBIAS1 N001 N001 NMOS
+M7 0 VBIAS2 N005 N005 NMOS
+M8 0 VBIAS2 N004 N004 NMOS
+M9 OUT VBIAS3 VDD VDD PMOS
+M10 0 N002 OUT OUT NMOS
+C1 OUT N002 Cm
+C2 OUT 0 CL
+M11 N003 VBIAS3 VDD VDD PMOS
+M12 VBIAS3 VBIAS3 VDD VDD PMOS
+M13 0 VBIAS2 VBIAS3 VBIAS3 NMOS
+M14 0 VBIAS2 VBIAS2 VBIAS2 NMOS
+M15 VBIAS2 VBIAS1 VBIAS1 VBIAS1 NMOS
+IB VDD VBIAS1 I
+.model NMOS NMOS
+.model PMOS PMOS
+"""
 
-xM3 d13 d13 GND GND nch_lvt_mac w = W3 l = L3
-xM4 n1  d13 GND GND nch_lvt_mac w = W4 l = L4
+xM1 N003 INm N005 N005 PMOS W=W1 L=L1
+xM2 N004 INp N003 N003 PMOS W=W2 L=L2
 
-xM5 OUT n1  GND GND nch_lvt_mac w = W5 l = L5
+xM3 N002 n1 VDD VDD PMOS W=W3 L=L3
+xM4 n1 n1 VDD VDD PMOS W=W4 L=L4
+xM5 N004 VBIAS1 N002 N002 NMOS W=W5 L=L5
+xM6 N005 VBIAS1 N001 N001 NMOS W=W6 L=L6
 
-xM6 OUT nb  VDD VDD pch_lvt_mac w = W6 l = L6
-xM7 s12 nb  VDD VDD pch_lvt_mac w = W7 l = L7
-xM8 nb  nb  VDD VDD pch_lvt_mac w = W8 l = L8
+xM7 GND VBIAS2 N005 N005 NMOS W=W7 L=L7
+xM8 GND VBIAS2 N004 N004 NMOS W=W8 L=L8
 
-Cf n1 OUT Cf_val
+xM9 OUT VBIAS3 VDD VDD PMOS W=W9 L=L9
+xM10 GND N002 OUT OUT NMOS W=W10 L=L10
+
+xM11 N003 VBIAS3 VDD VDD PMOS W=W11 L=L11
+xM12 VBIAS3 VBIAS3 VDD VDD PMOS W=W12 L=L12
+
+xM13 GND VBIAS2 VBIAS3 VBIAS3 NMOS W=W13 L=L13
+xM14 GND VBIAS2 VBIAS2 VBIAS2 NMOS W=W14 L=L14
+xM15 VBIAS2 VBIAS1 VBIAS1 VBIAS1 NMOS W=W15 L=L15
+Cf OUT n2 Cf_val
 
 * Load capacitance
 Cload OUT GND Cl_val
@@ -139,16 +199,34 @@ VVINm INm GND DC VIN AC -V0
 .extract DC label=VSD7 -VDS(xM7.MAIN)
 .extract DC label=VSG8 -VGS(xM8.MAIN)
 .extract DC label=VSD8 -VDS(xM8.MAIN)
+.extract DC label=VGS10 VGS(xM10.MAIN)
+.extract DC label=VDS10 VDS(xM10.MAIN)
+.extract DC label=VSG11 -VGS(xM11.MAIN)
+.extract DC label=VSD11 -VDS(xM11.MAIN)
+.extract DC label=VSD12 -VDS(xM12.MAIN)
+.extract DC label=VSG13 -VGS(xM13.MAIN)
+.extract DC label=VSD13 -VDS(xM13.MAIN)
+.extract DC label=VSG14 -VGS(xM14.MAIN)
+.extract DC label=VSD14 -VDS(xM14.MAIN)
+.extract DC label=VSG15 -VGS(xM15.MAIN)
+.extract DC label=VSD15 -VDS(xM15.MAIN)
 
 *** Currents
-.extract DC label=ID1 I(xM1.MAIN.S)
-.extract DC label=ID2 I(xM2.MAIN.S)
-.extract DC label=ID3 I(xM3.MAIN.D)
-.extract DC label=ID4 I(xM4.MAIN.D)
-.extract DC label=ID5 I(xM5.MAIN.D)
-.extract DC label=ID6 I(xM6.MAIN.S)
-.extract DC label=ID7 I(xM7.MAIN.S)
-.extract DC label=ID8 I(xM8.MAIN.S)
+.extract DC label=ID1  I(xM1.MAIN.D)
+.extract DC label=ID2  I(xM2.MAIN.D)
+.extract DC label=ID3  I(xM3.MAIN.D)
+.extract DC label=ID4  I(xM4.MAIN.D)
+.extract DC label=ID5  I(xM5.MAIN.D)
+.extract DC label=ID6  I(xM6.MAIN.D)
+.extract DC label=ID7  I(xM7.MAIN.D)
+.extract DC label=ID8  I(xM8.MAIN.D)
+.extract DC label=ID9  I(xM9.MAIN.D)
+.extract DC label=ID10 I(xM10.MAIN.D)
+.extract DC label=ID11 I(xM11.MAIN.D)
+.extract DC label=ID12 I(xM12.MAIN.D)
+.extract DC label=ID13 I(xM13.MAIN.D)
+.extract DC label=ID14 I(xM14.MAIN.D)
+.extract DC label=ID15 I(xM15.MAIN.D)
 
 * (gm/ID)'s 
 .extract DC label=gm_over_ID1 'gm(xM1.MAIN)/ID1'
@@ -156,7 +234,15 @@ VVINm INm GND DC VIN AC -V0
 .extract DC label=gm_over_ID3 'gm(xM3.MAIN)/ID3'
 .extract DC label=gm_over_ID4 'gm(xM4.MAIN)/ID4'
 .extract DC label=gm_over_ID6 'gm(xM6.MAIN)/ID6'
-.extract DC label=gm_over_ID7 'gm(xM7.MAIN)/ID5'
+.extract DC label=gm_over_ID7 'gm(xM7.MAIN)/ID7'
+.extract DC label=gm_over_ID8 'gm(xM8.MAIN)/ID8'
+.extract DC label=gm_over_ID9 'gm(xM9.MAIN)/ID9'
+.extract DC label=gm_over_ID10 'gm(xM10.MAIN)/ID10'
+.extract DC label=gm_over_ID11 'gm(xM11.MAIN)/ID11'
+.extract DC label=gm_over_ID12 'gm(xM12.MAIN)/ID12'
+.extract DC label=gm_over_ID13 'gm(xM13.MAIN)/ID13'
+.extract DC label=gm_over_ID14 'gm(xM14.MAIN)/ID14'
+.extract DC label=gm_over_ID15 'gm(xM15.MAIN)/ID15'
 
 * Power consumption
 .extract DC label=Power 'V(VDD)*(-I(VVDD)-ID8)'
@@ -170,6 +256,13 @@ VVINm INm GND DC VIN AC -V0
 .extract DC label=M6 opmode(xM6.MAIN)
 .extract DC label=M7 opmode(xM7.MAIN)
 .extract DC label=M8 opmode(xM8.MAIN)
+.extract DC label=M9 opmode(xM9.MAIN)
+.extract DC label=M10 opmode(xM10.MAIN)
+.extract DC label=M11 opmode(xM11.MAIN)
+.extract DC label=M12 opmode(xM12.MAIN)
+.extract DC label=M13 opmode(xM13.MAIN)
+.extract DC label=M14 opmode(xM14.MAIN)
+.extract DC label=M15 opmode(xM15.MAIN)
 
 ***** AC *****
 
