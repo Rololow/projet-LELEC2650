@@ -7,27 +7,24 @@ Miller OTA 1st order Python sizing
 Sylvain Favresse, 2025
 
 netlist : 
-pair diff :
-M1 N005 VIN- N003 N003 PMOS
-M2 N004 VIN+ N003 N003 PMOS
+M14 VBIAS2 VBIAS2 0 0 NMOS
+M13 VBIAS3 VBIAS2 0 0 NMOS
+M15 VBIAS1 VBIAS1 VBIAS2 VBIAS2 NMOS
+M7 N007 VBIAS2 0 0 NMOS
+M8 N006 VBIAS2 0 0 NMOS
+M6 N004 VBIAS1 N007 N007 NMOS
+M5 N002 VBIAS1 N006 N006 NMOS
+M10 N003 NC_01 0 0 NMOS
+C1 N003 N002 Cm
+C2 N003 0 CL
+M4 N004 N001 VDD VDD PMOS
 M3 N002 N001 VDD VDD PMOS
-M4 N001 N001 VDD VDD PMOS
-M5 N004 VBIAS1 N002 N002 NMOS
-M6 N005 VBIAS1 N001 N001 NMOS
-M7 0 VBIAS2 N005 N005 NMOS
-M8 0 VBIAS2 N004 N004 NMOS
-M9 OUT VBIAS3 VDD VDD PMOS
-M10 0 N002 OUT OUT NMOS
-C1 OUT N002 Cm
-C2 OUT 0 CL
-M11 N003 VBIAS3 VDD VDD PMOS
+M9 N003 VBIAS3 VDD VDD PMOS
+M2 N006 VIN+ N005 N005 PMOS
+M1 N007 VIN- N005 N005 PMOS
+M11 N005 VBIAS3 VDD VDD PMOS
 M12 VBIAS3 VBIAS3 VDD VDD PMOS
-M13 0 VBIAS2 VBIAS3 VBIAS3 NMOS
-M14 0 VBIAS2 VBIAS2 VBIAS2 NMOS
-M15 VBIAS2 VBIAS1 VBIAS1 VBIAS1 NMOS
-IB VDD VBIAS1 I
-.model NMOS NMOS
-.model PMOS PMOS
+I1 VDD VBIAS1 I
 """
 
 import numpy as np
@@ -63,21 +60,22 @@ VDD = 1.2
 L = 2e-6
 
 L1 = L; L2 = L1
-L3 = L; L4 = L3 
+L3 = L; L4 = L3
 L5 = L; L6 = L5
 L7 = L; L8 = L7
 L9 = L; L10= L9
 L11= L9; L12= L9
 L13= L9; L14= L9; L15= L9
 
-gmid1 = 18; gmid2 = gmid1
-gmid3 = 15; gmid4 = gmid3; 
-gmid5 = 12; gmid6 = gmid5
-gmid8 = 15; gmid7 = gmid8
-gmid9 = 10; gmid10 = gmid9
-gmid11 = 10; gmid12 = gmid11; 
-gmid13 = 15; 
-gmid14 = 15; gmid15 = gmid14
+gmid1 = 18.0; gmid2 = gmid1
+gmid3 = 18.0; gmid4 = gmid3
+gmid5 = 18.0; gmid6 = gmid5
+gmid8 = 15.0; gmid7 = gmid8
+gmid9 = 18.0; # 14 18 todo :16 
+gmid10 = gmid8
+gmid11 = 18.0; gmid12 = gmid11; 
+gmid14 = gmid8; gmid13 = gmid14
+gmid15 = gmid5
 
 M1 = pch_lvt; M2 = pch_lvt
 M3 = pch_lvt; M4 = pch_lvt
@@ -95,12 +93,11 @@ zero_to_wT_ratio = 10 # determines gm5 / gm10
 
 """
 Important equations to remind (see lecture slides)
-    GBW = gm1 / (2*pi*Cf)
     wT = gm1 / Cf
-    Av0 = (gm1*gm5) / (g1 * g5)
-    pd = - (g1*g5)/(gm5*Cf)
-    pnd = - (gm5 * Cf) / (C1*C2+(C1+C2)*Cf)
-    z = gm5 / Cf
+    GBW = gm5 / (2*np.pi * Cf)
+    pd = GBW / gain
+    pnd = gm10 * Cf / (2*np.pi * (C1*C2 + (C1+C2)*Cf))
+    z = gm10 / (2*np.pi * Cf)
     PM = 90° - arctan(wT/pnd) - arctan(wT/z)
     
 The sizing of Cf is done based on a desired PM, that depends on the parasitic
@@ -234,6 +231,9 @@ vdsat8 = float(scint.interp1d(M8['GMID'], M8['VDSAT'])(gmid8))
 vdsat9 = - float(scint.interp1d(M9['GMID'], M9['VDSAT'])(gmid9))
 vdsat10 = float(scint.interp1d(M10['GMID'], M10['VDSAT'])(gmid10))
 vdsat11 = - float(scint.interp1d(M11['GMID'], M11['VDSAT'])(gmid11))
+vdsat13 = float(scint.interp1d(M13['GMID'], M13['VDSAT'])(gmid13))
+vdsat14 = float(scint.interp1d(M14['GMID'], M14['VDSAT'])(gmid14))
+vdsat15 = float(scint.interp1d(M15['GMID'], M15['VDSAT'])(gmid15))
 
 vea1 = float(scint.interp1d(M1['GMID'], M1['VEA'])(gmid1)) # only valid because techno extraction was done with same L
 vea3 = float(scint.interp1d(M3['GMID'], M3['VEA'])(gmid3)) # only valid because techno extraction was done with same L
@@ -355,5 +355,5 @@ print('Power consumption: {:2.3f} µW'.format(power*1e6))
 print('Active area: {:2.3f} µm2'.format(area*1e12))
 print('SRint: {:2.3f} V/ms'.format(sr_int/1e3))
 print('SRext: {:2.3f} V/ms'.format(sr_ext/1e3))
-#print('VIN: min/max = {:2.2f}/{:2.2f} V'.format(vin_min,vin_max))
-#print('VOUT: min/max = {:2.2f}/{:2.2f} V'.format(vout_min,vout_max))
+print('VIN: min/max = {:2.2f}/{:2.2f} V'.format(vin_min,vin_max))
+print('VOUT: min/max = {:2.2f}/{:2.2f} V'.format(vout_min,vout_max))
