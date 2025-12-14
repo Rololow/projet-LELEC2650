@@ -158,5 +158,5 @@ IIbias VDD VBIAS1 DC IBIAS
 * absolute voltage reference
 .connect GND 0
 
-*** Supply voltage
-VVDD VDD GND DC vdd_val
+*** Supply voltage - DEFINED IN TESTBENCH
+* VVDD VDD GND DC vdd_val

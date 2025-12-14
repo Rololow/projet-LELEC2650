@@ -1,0 +1,98 @@
+* TSMC 65nm Cascode Miller OTA Simulation - Step Response
+* December 2024
+*-----------------------------------------------
+
+************************************
+*	Library & Technology settings
+************************************
+
+* Library containing the transistor model from the foundry
+.LIB key=K1 '/dir/TECHNOLOGY/cds2024/TSMC-N65/CMOS/LP/pdk/models/eldo/toplevel.eldo' tt_lib
+
+************************************
+*	Include circuit definition
+************************************
+
+.include ./CascodeMillerOTA.cir
+
+*******************************
+*	Supply
+*******************************
+
+*** Supply voltage
+VVDD VDD GND DC vdd_val
+
+*******************************
+*	Stimuli
+*******************************
+
+*** Closed-loop unity gain configuration (voltage follower)
+* Connect output to negative input for unity gain feedback
+VFEEDBACK INm OUT DC 0
+
+*** Small-signal step input for step response analysis
+.param V_DC = 0.5
+.param V_STEP = 50m
+.param T_DELAY = 10u
+
+* Step input: DC level + small step after delay
+VVINp INp GND PULSE 'V_DC' 'V_DC + V_STEP' T_DELAY 1n 1n 100u 200u
+
+**********************************
+*	Simulations
+**********************************
+
+.OP
+
+*** Transient analysis
+.param t_stop = 30u
+.param t_step = 1n
+
+.TRAN t_step t_stop
+
+**********************************
+*	Measurements
+**********************************
+
+*** Plot signals
+.plot TRAN V(INp) V(OUT)
+
+*** Step response characteristics
+
+* Final value
+.param V_FINAL = 'V_DC + V_STEP'
+
+* 10% to 90% rise time
+.param V_10 = 'V_DC + 0.1*V_STEP'
+.param V_90 = 'V_DC + 0.9*V_STEP'
+.MEAS TRAN t_10 WHEN V(OUT)=V_10 RISE=1 TD=T_DELAY
+.MEAS TRAN t_90 WHEN V(OUT)=V_90 RISE=1 TD=T_DELAY
+.MEAS TRAN rise_time PARAM='t_90 - t_10'
+
+* Delay time (50% point)
+.param V_50 = 'V_DC + 0.5*V_STEP'
+.MEAS TRAN t_50_in WHEN V(INp)=V_50 RISE=1 TD=T_DELAY
+.MEAS TRAN t_50_out WHEN V(OUT)=V_50 RISE=1 TD=T_DELAY
+.MEAS TRAN delay_time PARAM='t_50_out - t_50_in'
+
+* Settling time to 1%
+.param V_SETTLE_HIGH = 'V_FINAL * 1.01'
+.param V_SETTLE_LOW = 'V_FINAL * 0.99'
+.MEAS TRAN t_settle_1pct WHEN V(OUT)=V_SETTLE_LOW RISE=1 TD=T_DELAY
+
+* Settling time to 0.1%
+.param V_SETTLE_01_HIGH = 'V_FINAL * 1.001'
+.param V_SETTLE_01_LOW = 'V_FINAL * 0.999'
+.MEAS TRAN t_settle_01pct WHEN V(OUT)=V_SETTLE_01_LOW RISE=1 TD=T_DELAY
+
+* Overshoot
+.MEAS TRAN V_peak MAX V(OUT) FROM=T_DELAY TO='T_DELAY + 20u'
+.MEAS TRAN overshoot PARAM='(V_peak - V_FINAL) / V_STEP * 100'
+
+* Undershoot (if any)
+.MEAS TRAN V_min MIN V(OUT) FROM=T_DELAY TO='T_DELAY + 20u'
+
+*** Power consumption
+.extract DC label=Power '-V(VDD)*I(VVDD)'
+
+.end

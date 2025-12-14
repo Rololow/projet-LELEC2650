@@ -1,0 +1,203 @@
+* TSMC 65nm Cascode Miller OTA Simulation - Monte Carlo
+* Based on TB_MC.cir from TP6
+* December 2024
+*-----------------------------------------------
+
+************************************
+*	Library & Technology settings
+************************************
+
+* Library used for Monte-Carlo simulations
+.LIB key=K1 '/dir/TECHNOLOGY/cds2024/TSMC-N65/CMOS/LP/pdk/models/eldo/toplevel.eldo' mismatch_lib
+
+************************************
+*	Include circuit definition
+************************************
+
+.include ./CascodeMillerOTA.cir
+
+*******************************
+*	Supply
+*******************************
+
+*** Supply voltage
+VVDD VDD GND DC vdd_val
+
+*******************************
+*	Stimuli
+*******************************
+
+*** Input Voltages Sources - Pseudo closed-loop operation
+VSTB INm OUT
+VVINp INP 0 DC VIN
+.LSTB VSTB
+*** See TP5 for more details
+
+**********************************
+*	Measurements
+**********************************
+
+.extract DC label=IN V(INp)
+.extract DC label=VINp V(INp)
+.extract DC label=VINm V(INm)
+.extract DC label=VOUT V(OUT)
+.extract DC label=V_error 'V(OUT)-V(INp)'
+
+*** Input pair M1/M2
+.extract DC label=VGS1 VGS(xM1.MAIN)
+.extract DC label=VGS2 VGS(xM2.MAIN)
+.extract DC label=VDS1 VDS(xM1.MAIN)
+.extract DC label=VDS2 VDS(xM2.MAIN)
+
+*** Active load M3/M4
+.extract DC label=VSG3 -VGS(xM3.MAIN)
+.extract DC label=VSG4 -VGS(xM4.MAIN)
+
+*** Cascode transistors M5/M6
+.extract DC label=VDS5 VDS(xM5.MAIN)
+.extract DC label=VDS6 VDS(xM6.MAIN)
+
+*** Current source transistors M7/M8
+.extract DC label=VDS7 VDS(xM7.MAIN)
+.extract DC label=VDS8 VDS(xM8.MAIN)
+
+*** Output stage M9/M10
+.extract DC label=VSG9 -VGS(xM9.MAIN)
+.extract DC label=VDS9 -VDS(xM9.MAIN)
+.extract DC label=VDS10 VDS(xM10.MAIN)
+
+*** Bias transistors M11-M15
+.extract DC label=VSG11 -VGS(xM11.MAIN)
+.extract DC label=VGS13 VGS(xM13.MAIN)
+.extract DC label=VGS14 VGS(xM14.MAIN)
+.extract DC label=VGS15 VGS(xM15.MAIN)
+
+*** Currents
+.extract DC label=ID1 I(xM1.MAIN.D)
+.extract DC label=ID2 I(xM2.MAIN.D)
+.extract DC label=ID5 I(xM5.MAIN.D)
+.extract DC label=ID6 I(xM6.MAIN.D)
+.extract DC label=ID9 I(xM9.MAIN.S)
+.extract DC label=ID10 I(xM10.MAIN.D)
+
+* (gm/ID)'s 
+.extract DC label=gm_over_ID1 'gm(xM1.MAIN)/ID1'
+.extract DC label=gm_over_ID2 'gm(xM2.MAIN)/ID2'
+.extract DC label=gm_over_ID5 'gm(xM5.MAIN)/ID5'
+.extract DC label=gm_over_ID9 'gm(xM9.MAIN)/ID9'
+
+* Power consumption
+.extract DC label=Power '-V(VDD)*I(VVDD)'
+
+* Region of operation (0=cutoff, 1=linear, 2=saturation, 3=subthreshold)
+.extract DC label=M1 opmode(xM1.MAIN)
+.extract DC label=M2 opmode(xM2.MAIN)
+.extract DC label=M3 opmode(xM3.MAIN)
+.extract DC label=M4 opmode(xM4.MAIN)
+.extract DC label=M5 opmode(xM5.MAIN)
+.extract DC label=M6 opmode(xM6.MAIN)
+.extract DC label=M7 opmode(xM7.MAIN)
+.extract DC label=M8 opmode(xM8.MAIN)
+.extract DC label=M9 opmode(xM9.MAIN)
+.extract DC label=M10 opmode(xM10.MAIN)
+.extract DC label=M11 opmode(xM11.MAIN)
+.extract DC label=M12 opmode(xM12.MAIN)
+.extract DC label=M13 opmode(xM13.MAIN)
+.extract DC label=M14 opmode(xM14.MAIN)
+.extract DC label=M15 opmode(xM15.MAIN)
+
+.extract DC label=gm1 gm(xM1.MAIN)
+.extract DC label=Vth1 Vth(xM1.MAIN)
+
+
+*** Gain
+
+.plot AC LSTB_DB LSTB_P
+
+
+* magnitude in dB
+.extract AC label=Av0dB 'max(LSTB_DB)'
+* absolute magnitude
+.extract AC label=Av0 '10^(Av0dB/20)'
+
+*** Transition Frequency
+* Real value from AC simulation
+.extract AC label=fT 'xthres(LSTB_DB,0)'
+
+.extract AC label=Phase_Margin '180 - yval(LSTB_P,1) + xycond(LSTB_P,LSTB_DB<0)'
+
+
+**********************************
+*	Simulations
+**********************************
+
+.OP
+
+.param fmin = 1
+.param fmax = 1Giga
+.AC dec 100 fmin fmax
+
+
+***** Monte-Carlo Analysis ******
+
+* #com
+
+* Allows multi-core processing to speed the simulation up
+.mprun all max_nbjobs=4 queue=YES logfile=NO
+
+.param Nruns = 1000
+.MC Nruns ALL NONOM SEED=53 OUTER
+* /!\ Always compute statistics of absolute quantity (i.e. NOT in dB, for Av0)
+
+*** Mean values
+.extract MC label=mean_Av0 mcavg(Av0)
+.extract MC label=mean_fT mcavg(fT)
+.extract MC label=mean_PM mcavg(Phase_Margin)
+.extract MC label=mean_Verror mcavg(V_error)
+.extract MC label=mean_Power mcavg(Power)
+.extract MC label=mean_Vth1 mcavg(Vth1)
+
+*** Standard deviations
+.extract MC label=std_Av0 mcstd(Av0)
+.extract MC label=std_fT mcstd(fT)
+.extract MC label=std_PM mcstd(Phase_Margin)
+.extract MC label=std_Verror mcstd(V_error)
+.extract MC label=std_Power mcstd(Power)
+.extract MC label=std_Vth1 mcstd(Vth1)
+
+*** Relative variations (sigma/mu in %)
+.extract MC label=var_Av0_pct '100*std_Av0/mean_Av0'
+.extract MC label=var_fT_pct '100*std_fT/mean_fT'
+.extract MC label=var_Power_pct '100*std_Power/mean_Power'
+
+*** Min/Max values for yield analysis
+.extract MC label=min_Av0 mcmin(Av0)
+.extract MC label=max_Av0 mcmax(Av0)
+.extract MC label=min_fT mcmin(fT)
+.extract MC label=max_fT mcmax(fT)
+.extract MC label=min_PM mcmin(Phase_Margin)
+.extract MC label=max_PM mcmax(Phase_Margin)
+.extract MC label=min_Verror mcmin(V_error)
+.extract MC label=max_Verror mcmax(V_error)
+
+*** 3-sigma bounds
+.extract MC label=Av0_3sigma_low 'mean_Av0 - 3*std_Av0'
+.extract MC label=Av0_3sigma_high 'mean_Av0 + 3*std_Av0'
+.extract MC label=fT_3sigma_low 'mean_fT - 3*std_fT'
+.extract MC label=fT_3sigma_high 'mean_fT + 3*std_fT'
+.extract MC label=PM_3sigma_low 'mean_PM - 3*std_PM'
+.extract MC label=PM_3sigma_high 'mean_PM + 3*std_PM'
+.extract MC label=Verror_3sigma_low 'mean_Verror - 3*std_Verror'
+.extract MC label=Verror_3sigma_high 'mean_Verror + 3*std_Verror'
+
+*** Print all results to file
+.printfile MC meas(mean_Av0) meas(std_Av0) meas(var_Av0_pct) meas(min_Av0) meas(max_Av0) meas(Av0_3sigma_low) meas(Av0_3sigma_high) file=MC_Av0.txt format=data
+.printfile MC meas(mean_fT) meas(std_fT) meas(var_fT_pct) meas(min_fT) meas(max_fT) meas(fT_3sigma_low) meas(fT_3sigma_high) file=MC_fT.txt format=data
+.printfile MC meas(mean_PM) meas(std_PM) meas(min_PM) meas(max_PM) meas(PM_3sigma_low) meas(PM_3sigma_high) file=MC_PM.txt format=data
+.printfile MC meas(mean_Verror) meas(std_Verror) meas(min_Verror) meas(max_Verror) meas(Verror_3sigma_low) meas(Verror_3sigma_high) file=MC_Verror.txt format=data
+.printfile MC meas(mean_Power) meas(std_Power) meas(var_Power_pct) file=MC_Power.txt format=data
+.printfile MC meas(mean_Vth1) meas(std_Vth1) file=MC_Vth1.txt format=data
+
+* #endcom
+
+.end

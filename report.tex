@@ -1,0 +1,267 @@
+\documentclass[11pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% Configuration
+\geometry{margin=2.5cm}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+\sisetup{per-mode=symbol}
+
+% Titre
+\title{\textbf{LELEC2650 - Cascode Miller OTA Design Report}}
+\author{Projet de conception analogique}
+\date{Décembre 2024}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Architecture}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+OTA Miller à deux étages avec cascode replié, implémenté en technologie TSMC \SI{65}{\nano\meter} LP.
+
+\begin{itemize}
+    \item \textbf{15 transistors} (M1-M15) avec transistors LVT
+    \item \textbf{Compensation Miller} : $C_f = \SI{2.43}{\pico\farad}$
+    \item \textbf{Charge} : $C_L = \SI{10}{\pico\farad}$
+    \item \textbf{Alimentation} : $V_{DD} = \SI{1.2}{\volt}$
+    \item \textbf{Courant de bias} : $I_{BIAS} = \SI{0.85}{\micro\ampere}$
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Méthodologie de Mesure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Slew Rate (TB\_SR.cir)}
+Configuration unity-gain (voltage follower) avec $IN_m$ connecté à $OUT$. Un pulse d'entrée (\SI{0.2}{\volt} $\rightarrow$ \SI{0.8}{\volt}) est appliqué après un délai de \SI{20}{\micro\second} pour stabilisation. Le SR est mesuré entre 10\% et 90\% du swing de sortie via \texttt{.MEAS TRAN ... WHEN ... TD=T\_DELAY} pour ignorer le transitoire initial.
+
+\subsection{Monte Carlo (TB\_MC.cir)}
+Simulation pseudo-closed-loop avec la technique LSTB (Loop Stability) : une source de tension $V_{STB}$ entre $IN_m$ et $OUT$ permet de mesurer le gain et la phase en boucle ouverte. 1000 runs avec bibliothèque \texttt{mismatch\_lib} et seed fixe pour reproductibilité.
+
+\subsection{Noise (TB\_NOISE.cir)}
+Configuration open-loop différentielle avec sources VCVS pour créer une entrée symétrique. Analyse \texttt{.NOISE} avec intégration du spectre de \SI{1}{\hertz} à \SI{100}{\mega\hertz} (sortie) et \SI{1}{\hertz} à $\pi/2 \cdot f_T$ (entrée) pour obtenir le bruit RMS.
+
+\subsection{PVT Corners (TB\_PVT.cir)}
+16 corners combinant : process (FF/SS/SF/FS), tension ($\pm$10\% $V_{DD}$), température (\SI{-40}{\celsius} à \SI{+85}{\celsius}). Même configuration LSTB que Monte Carlo.
+
+\subsection{CMRR (TB\_CMRR.cir)}
+Même signal AC appliqué sur les deux entrées (mode commun). Mesure du gain mode commun $A_{cm}$, puis $CMRR = A_{dm} - A_{cm}$ (en dB).
+
+\subsection{PSRR (TB\_PSRR.cir)}
+Entrées à potentiel DC fixe, signal AC sur $V_{DD}$. Mesure du gain $A_{vdd}$, puis $PSRR = A_{dm} - A_{vdd}$ (en dB).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Slew Rate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+L'analyse transitoire en configuration unity-gain (voltage follower) révèle un slew rate asymétrique : $SR^+ = \SI{0.35}{\volt\per\micro\second}$ et $SR^- = \SI{0.30}{\volt\per\micro\second}$, soit une moyenne de $\SI{0.32}{\volt\per\micro\second}$. Cette asymétrie est caractéristique des OTA Miller où les capacités de charge (M9 PMOS) et décharge (M10 NMOS) de la capacité de compensation diffèrent. Le settling time à 1\% est d'environ \SI{2}{\micro\second} avec un overshoot négligeable (<0.5\% en montée, $\sim$2.5\% en descente).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plots/slew_rate.png}
+    \caption{Réponse transitoire - Slew Rate en configuration unity-gain}
+    \label{fig:slew_rate}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Monte Carlo}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+L'analyse Monte Carlo (1000 runs) évalue la robustesse du design face aux variations de process et mismatch. Le gain moyen est de 3873 V/V (\SI{71.8}{\decibel}) avec une variation relative de 6\%. La marge de phase reste très stable à $63.7° \pm 0.66°$, garantissant la stabilité dans tous les cas. L'offset d'entrée, principal effet du mismatch sur la paire différentielle, présente un écart-type de \SI{3.6}{\milli\volt}. La consommation est de $\SI{13.0}{\micro\watt} \pm \SI{0.35}{\micro\watt}$ (2.7\% de variation).
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats Monte Carlo (N=1000)}
+    \label{tab:monte_carlo}
+    \begin{tabular}{lccc}
+        \toprule
+        \textbf{Paramètre} & \textbf{Moyenne ($\mu$)} & \textbf{Écart-type ($\sigma$)} & \textbf{$\sigma/\mu$ (\%)} \\
+        \midrule
+        $A_{v0}$ (gain) & 3873 (\SI{71.8}{\decibel}) & 234 & 6.0 \\
+        $f_T$ & \SI{621}{\kilo\hertz} & \SI{19.4}{\kilo\hertz} & 3.1 \\
+        Phase Margin & 63.7° & 0.66° & 1.0 \\
+        $V_{error}$ (offset) & \SI{4.9}{\micro\volt} & \SI{3.6}{\milli\volt} & -- \\
+        Power & \SI{13.0}{\micro\watt} & \SI{0.35}{\micro\watt} & 2.7 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{plots/monte_carlo_histograms.png}
+    \caption{Histogrammes Monte Carlo : distribution du gain, $f_T$, marge de phase et offset}
+    \label{fig:monte_carlo}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{PVT Corners}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+L'analyse PVT (Process-Voltage-Temperature) évalue la robustesse du design sur 16 corners combinant les variations de process (FF/SS/SF/FS), tension ($\pm$10\% $V_{DD}$) et température (\SI{-40}{\celsius} à \SI{+85}{\celsius}). Le design reste fonctionnel et stable sur tous les corners avec une marge de phase toujours supérieure à 60°.
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats PVT Corners}
+    \label{tab:pvt}
+    \begin{tabular}{lcccc}
+        \toprule
+        \textbf{Paramètre} & \textbf{Min} & \textbf{Nominal (TT)} & \textbf{Max} & \textbf{Variation} \\
+        \midrule
+        $A_{v0}$ & \SI{70.2}{\decibel} & \SI{71.8}{\decibel} & \SI{73.1}{\decibel} & $\pm$\SI{1.5}{\decibel} \\
+        $f_T$ & \SI{585}{\kilo\hertz} & \SI{622}{\kilo\hertz} & \SI{649}{\kilo\hertz} & $\pm$5\% \\
+        Phase Margin & 61.7° & 63.7° & 65.5° & $\pm$2° \\
+        Power & \SI{11.5}{\micro\watt} & \SI{13.0}{\micro\watt} & \SI{14.5}{\micro\watt} & $\pm$12\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Le corner le plus défavorable pour la stabilité est FF\_HIGH\_COLD ($PM = 61.7°$), tandis que SS\_LOW\_COLD offre la meilleure marge ($PM = 65.5°$). La consommation varie principalement avec la tension d'alimentation.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Noise}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+L'analyse de bruit révèle un bruit d'entrée RMS de \SI{88.6}{\micro\volt} et un bruit de sortie RMS de \SI{82.1}{\milli\volt}. Le spectre de bruit d'entrée montre une forte composante 1/f à basse fréquence (\SI{111.9}{\pico\volt\squared\per\hertz} @ \SI{1}{\hertz}) qui diminue vers le bruit thermique à haute fréquence (\SI{4.6}{\femto\volt\squared\per\hertz} @ \SI{1}{\mega\hertz}). Le rapport élevé entre le bruit à \SI{1}{\hertz} et \SI{1}{\mega\hertz} (facteur $\sim$25000) confirme la dominance du bruit flicker, typique des transistors MOS en faible inversion utilisés dans ce design à faible consommation.
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats analyse de bruit}
+    \label{tab:noise}
+    \begin{tabular}{lc}
+        \toprule
+        \textbf{Mesure} & \textbf{Valeur} \\
+        \midrule
+        Bruit d'entrée RMS & \SI{88.6}{\micro\volt} \\
+        Bruit de sortie RMS & \SI{82.1}{\milli\volt} \\
+        INOISE @ \SI{1}{\hertz} & \SI{111.9}{\pico\volt\squared\per\hertz} \\
+        INOISE @ \SI{1}{\kilo\hertz} & \SI{74.9}{\femto\volt\squared\per\hertz} \\
+        INOISE @ \SI{1}{\mega\hertz} & \SI{4.6}{\femto\volt\squared\per\hertz} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plots/noise_spectrum.png}
+    \caption{Spectre de bruit d'entrée et de sortie}
+    \label{fig:noise}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Step Response}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+L'analyse de la réponse à un échelon (step de \SI{50}{\milli\volt} en configuration unity-gain) caractérise le comportement temporel de l'OTA. Le temps de montée (10\%-90\%) est de \SI{390}{\nano\second} avec un temps de propagation de \SI{276}{\nano\second}. Le settling time à 1\% est de \SI{487}{\nano\second} et à 0.1\% de \SI{648}{\nano\second}. L'overshoot de 12.1\% est notable et peut être attribué à la marge de phase de $\sim$64°.
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats Step Response}
+    \label{tab:step}
+    \begin{tabular}{lc}
+        \toprule
+        \textbf{Paramètre} & \textbf{Valeur} \\
+        \midrule
+        Rise Time (10\%-90\%) & \SI{390}{\nano\second} \\
+        Delay Time (50\%) & \SI{276}{\nano\second} \\
+        Settling Time (1\%) & \SI{487}{\nano\second} \\
+        Settling Time (0.1\%) & \SI{648}{\nano\second} \\
+        Overshoot & 12.1\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{CMRR}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Le Common Mode Rejection Ratio mesure la capacité de l'OTA à rejeter les signaux de mode commun. En appliquant le même signal AC sur les deux entrées, on mesure le gain mode commun $A_{cm}$, puis $CMRR = A_{dm} - A_{cm}$. Les résultats montrent un excellent CMRR, supérieur à \SI{130}{\decibel} à basse fréquence, grâce à la symétrie de la paire différentielle et à la source de courant de queue.
+
+\begin{table}[H]
+    \centering
+    \caption{CMRR en fonction de la fréquence}
+    \label{tab:cmrr}
+    \begin{tabular}{ccc}
+        \toprule
+        \textbf{Fréquence} & \textbf{$A_{cm}$ (dB)} & \textbf{CMRR (dB)} \\
+        \midrule
+        \SI{1}{\hertz} & -59.8 & 131.6 \\
+        \SI{1}{\kilo\hertz} & -74.7 & 146.5 \\
+        \SI{1}{\mega\hertz} & -125.0 & 196.8 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\textbf{Note :} Le CMRR apparent qui augmente avec la fréquence est dû au fait que $A_{dm}$ est supposé constant à \SI{71.8}{\decibel} dans le calcul. En réalité, $A_{dm}$ diminue aussi avec la fréquence, donc le CMRR réel est plus pertinent à basse fréquence.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{PSRR}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Le Power Supply Rejection Ratio mesure la capacité de l'OTA à rejeter les perturbations sur l'alimentation $V_{DD}$. En appliquant un signal AC sur $V_{DD}$ avec les entrées à un potentiel DC fixe, on mesure le gain $A_{vdd}$, puis $PSRR = A_{dm} - A_{vdd}$. Le PSRR est d'environ 72-74 dB sur toute la plage de fréquences, ce qui est acceptable pour un OTA Miller. La valeur relativement constante en fréquence indique une bonne isolation de l'alimentation.
+
+\begin{table}[H]
+    \centering
+    \caption{PSRR en fonction de la fréquence}
+    \label{tab:psrr}
+    \begin{tabular}{ccc}
+        \toprule
+        \textbf{Fréquence} & \textbf{$A_{vdd}$ (dB)} & \textbf{PSRR (dB)} \\
+        \midrule
+        \SI{1}{\hertz} & -1.7 & 73.5 \\
+        \SI{1}{\kilo\hertz} & -0.2 & 72.0 \\
+        \SI{1}{\mega\hertz} & -1.8 & 73.6 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plots/cmrr_psrr.png}
+    \caption{CMRR et PSRR en fonction de la fréquence}
+    \label{fig:cmrr_psrr}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Résumé des Performances}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{table}[H]
+    \centering
+    \caption{Récapitulatif des Figures de Mérite}
+    \label{tab:summary}
+    \begin{tabular}{lc}
+        \toprule
+        \textbf{Figure de Mérite} & \textbf{Valeur} \\
+        \midrule
+        Gain ($A_{v0}$) & \SI{71.8}{\decibel} \\
+        Bande passante ($f_T$) & \SI{622}{\kilo\hertz} \\
+        Phase Margin & 63.7° \\
+        Slew Rate & \SI{0.32}{\volt\per\micro\second} \\
+        Settling Time (1\%) & \SI{487}{\nano\second} \\
+        CMRR @ \SI{1}{\hertz} & \SI{131.6}{\decibel} \\
+        PSRR @ \SI{1}{\hertz} & \SI{73.5}{\decibel} \\
+        Bruit d'entrée RMS & \SI{88.6}{\micro\volt} \\
+        Consommation & \SI{13.0}{\micro\watt} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\end{document}

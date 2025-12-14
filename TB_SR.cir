@@ -1,0 +1,113 @@
+* TSMC 65nm Cascode Miller OTA Simulation - Slew Rate
+* December 2024
+*-----------------------------------------------
+
+************************************
+*	Library & Technology settings
+************************************
+
+* Library containing the transistor model from the foundry
+.LIB key=K1 '/dir/TECHNOLOGY/cds2024/TSMC-N65/CMOS/LP/pdk/models/eldo/toplevel.eldo' tt_lib
+
+************************************
+*	Include circuit definition
+************************************
+
+.include ./CascodeMillerOTA.cir
+
+*******************************
+*	Supply
+*******************************
+
+*** Supply voltage
+VVDD VDD GND DC vdd_val
+
+*******************************
+*	Stimuli
+*******************************
+
+*** Closed-loop unity gain configuration (voltage follower)
+* Connect output to negative input for unity gain feedback
+VFEEDBACK INm OUT DC 0
+
+*** Input pulse for slew rate measurement
+* Rising and falling edges to measure both SR+ and SR-
+.param V_LOW = 0.2
+.param V_HIGH = 0.8
+.param T_RISE = 1n
+.param T_FALL = 1n
+.param T_PERIOD = 40u
+.param T_PULSE = 20u
+.param T_DELAY = 20u
+
+* Start at V_LOW, wait T_DELAY before first edge to let circuit settle
+VVINp INp GND PULSE V_LOW V_HIGH T_DELAY T_RISE T_FALL T_PULSE T_PERIOD
+
+**********************************
+*	Simulations
+**********************************
+
+.OP
+
+*** Transient analysis - longer to capture full settling
+.param t_start = 0
+.param t_stop = 100u
+.param t_step = 10n
+
+.TRAN t_step t_stop
+
+**********************************
+*	Measurements
+**********************************
+
+*** Plot signals
+.plot TRAN V(INp) V(OUT)
+
+*** Slew Rate measurements
+* SR+ : Rising slew rate (V/us)
+* Measure between 10% and 90% of the output swing
+
+.param V_10 = 'V_LOW + 0.1*(V_HIGH - V_LOW)'
+.param V_90 = 'V_LOW + 0.9*(V_HIGH - V_LOW)'
+
+* Rising edge slew rate - measure after T_DELAY using TSTART
+.MEAS TRAN t_rise_10 WHEN V(OUT)=V_10 RISE=1 TD=T_DELAY
+.MEAS TRAN t_rise_90 WHEN V(OUT)=V_90 RISE=1 TD=T_DELAY
+.MEAS TRAN SR_rise PARAM='(V_90 - V_10) / (t_rise_90 - t_rise_10) * 1e-6'
+
+* Falling edge slew rate
+.MEAS TRAN t_fall_90 WHEN V(OUT)=V_90 FALL=1 TD=T_DELAY
+.MEAS TRAN t_fall_10 WHEN V(OUT)=V_10 FALL=1 TD=T_DELAY
+.MEAS TRAN SR_fall PARAM='(V_90 - V_10) / (t_fall_10 - t_fall_90) * 1e-6'
+
+* Average slew rate
+.MEAS TRAN SR_avg PARAM='(SR_rise + SR_fall) / 2'
+
+*** Settling time measurements (to 1% of final value)
+.param SETTLE_TOL = 0.01
+.param V_SETTLE_HIGH = 'V_HIGH * (1 - SETTLE_TOL)'
+.param V_SETTLE_LOW = 'V_LOW * (1 + SETTLE_TOL)'
+
+* Time when input crosses mid-point (rising)
+.MEAS TRAN t_in_rise WHEN V(INp)='(V_LOW+V_HIGH)/2' RISE=1 TD=T_DELAY
+* Time when output settles to within 1% of V_HIGH
+.MEAS TRAN t_out_settle_rise WHEN V(OUT)=V_SETTLE_HIGH RISE=1 TD=T_DELAY
+.MEAS TRAN t_settle_rise PARAM='t_out_settle_rise - t_in_rise'
+
+* Falling settling time
+.MEAS TRAN t_in_fall WHEN V(INp)='(V_LOW+V_HIGH)/2' FALL=1 TD=T_DELAY
+.MEAS TRAN t_out_settle_fall WHEN V(OUT)=V_SETTLE_LOW FALL=1 TD=T_DELAY
+.MEAS TRAN t_settle_fall PARAM='t_out_settle_fall - t_in_fall'
+
+*** Overshoot measurement (measure in window after edges)
+.MEAS TRAN V_max MAX V(OUT) FROM=T_DELAY TO='T_DELAY+T_PULSE'
+.MEAS TRAN V_min MIN V(OUT) FROM='T_DELAY+T_PULSE' TO='T_DELAY+T_PERIOD'
+.MEAS TRAN V_overshoot_rise PARAM='V_max - V_HIGH'
+.MEAS TRAN V_overshoot_fall PARAM='V_LOW - V_min'
+.MEAS TRAN overshoot_pct_rise PARAM='100 * V_overshoot_rise / (V_HIGH - V_LOW)'
+.MEAS TRAN overshoot_pct_fall PARAM='100 * V_overshoot_fall / (V_HIGH - V_LOW)'
+
+*** Power consumption (from DC operating point)
+.extract DC label=Power '-V(VDD)*I(VVDD)'
+
+.end

@@ -188,12 +188,14 @@ while error > max_error and iteration < max_iteration:
     Cgdo5 = float(scint.interp1d(M5['GMID'], M5['CGD0'])(gmid5)) * W5
     Cgdo9 = float(scint.interp1d(M9['GMID'], M9['CGD0'])(gmid9)) * W9
     Cbd9 = float(scint.interp1d(M9['GMID'], M9['CBD'])(gmid9)) * W9
+    Cgs9 = float(scint.interp1d(M9['GMID'], M9['CGS'])(gmid9)) * W9 * L9
+    Cgso9 = float(scint.interp1d(M9['GMID'], M9['CGS0'])(gmid9)) * W9
     Cgs10 = float(scint.interp1d(M10['GMID'], M10['CGS'])(gmid10)) * W10 * L10
     Cgso10 = float(scint.interp1d(M10['GMID'], M10['CGS0'])(gmid10)) * W10
     Cbd10 = float(scint.interp1d(M10['GMID'], M10['CBD'])(gmid10)) * W10
     Cgdo10 = float(scint.interp1d(M10['GMID'], M10['CGD0'])(gmid10)) * W10
 
-    C1 = Cgs10 + Cgso10 + Cbd5 + Cgdo5 + Cbd3 + Cgdo3
+    C1 = Cgs9 + Cgso9 + Cbd5 + Cgdo5 + Cbd3 + Cgdo3
     C2 = CL + Cgdo10 + Cbd10 + Cgdo9 + Cbd9
 
     # Compute required Cf value for sufficient ratio pnd / wT (for phase margin)

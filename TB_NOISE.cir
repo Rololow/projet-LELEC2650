@@ -1,0 +1,82 @@
+* TSMC 65nm Cascode Miller OTA Simulation - Noise Analysis
+* Based on TB_NOISE.cir from TP6
+* December 2024
+*-----------------------------------------------
+
+************************************
+*	Library & Technology settings
+************************************
+
+* Library containing the transistor model from the foundry
+.LIB key=K1 '/dir/TECHNOLOGY/cds2024/TSMC-N65/CMOS/LP/pdk/models/eldo/toplevel.eldo' tt_lib
+
+************************************
+*	Include circuit definition
+************************************
+
+.include ./CascodeMillerOTA.cir
+
+*******************************
+*	Supply
+*******************************
+
+*** Supply voltage
+VVDD VDD GND DC vdd_val
+
+**********************************
+*	Simulations and Measurements
+**********************************
+
+***** Noise ******
+
+* #com
+
+.param NOISE_FMIN = 1
+
+** Must be >> fT (adjust based on your design's bandwidth)
+.param NOISE_OUT_FMAX = 100Meg  
+
+** Must be = pi/2 * fT (adjust based on your design's transition frequency)
+.param NOISE_IN_FMAX = 1.5708e6 
+
+* Open-loop operation
+VVIN_DC IN_DC GND DC VIN
+VVIN_AC IN_AC IN_DC DC 0.0 AC V0
+EVINp INp IN_DC VCVS IN_AC IN_DC 0.5 * Voltage-controlled voltage source
+EVINm INm IN_DC VCVS IN_AC IN_DC -0.5 * Voltage-controlled voltage source
+* Weird construction here: we try to have only one AC source in order to 
+* correctly reference the input source in the noise analysis
+
+* Noise PSDs in V^2/Hz
+.option IKF2    
+
+*Output node and input source given as parameters for total output and input noise PSDs
+.NOISE OUTV=V(OUT) INSRC=VVIN_AC 
+
+.plot NOISE INOISE ONOISE
+
+* RMS noise values integrated over frequency range
+.extract NOISE label=out_rms 'sqrt(integ(ONOISE,NOISE_FMIN,NOISE_OUT_FMAX))'
+.extract NOISE label=in_rms 'sqrt(integ(INOISE,NOISE_FMIN,NOISE_IN_FMAX))'
+
+* Spot noise at specific frequencies
+.extract NOISE label=inoise_1Hz 'yval(INOISE,1)'
+.extract NOISE label=inoise_1kHz 'yval(INOISE,1e3)'
+.extract NOISE label=inoise_1MHz 'yval(INOISE,1e6)'
+.extract NOISE label=onoise_1Hz 'yval(ONOISE,1)'
+.extract NOISE label=onoise_1kHz 'yval(ONOISE,1e3)'
+.extract NOISE label=onoise_1MHz 'yval(ONOISE,1e6)'
+
+**********************************
+*	Simulations
+**********************************
+
+.OP
+
+.param fmin = 1
+.param fmax = 1Giga
+.AC dec 100 fmin fmax
+
+* #endcom
+
+.end

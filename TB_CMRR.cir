@@ -1,0 +1,75 @@
+* TSMC 65nm Cascode Miller OTA Simulation - CMRR (Common Mode Rejection Ratio)
+* December 2024
+*-----------------------------------------------
+
+************************************
+*	Library & Technology settings
+************************************
+
+* Library containing the transistor model from the foundry
+.LIB key=K1 '/dir/TECHNOLOGY/cds2024/TSMC-N65/CMOS/LP/pdk/models/eldo/toplevel.eldo' tt_lib
+
+************************************
+*	Include circuit definition
+************************************
+
+.include ./CascodeMillerOTA.cir
+
+*******************************
+*	Supply
+*******************************
+
+*** Supply voltage
+VVDD VDD GND DC vdd_val
+
+*******************************
+*	Stimuli
+*******************************
+
+*** CMRR Measurement Setup
+* Apply same AC signal to both inputs (common mode)
+* Measure output response
+
+.param V_CM_DC = 0.5
+.param V_AC = 1m
+
+* Common mode input: same signal on both inputs
+VVINp INp GND DC V_CM_DC AC V_AC
+VVINm INm GND DC V_CM_DC AC V_AC
+
+**********************************
+*	Simulations
+**********************************
+
+.OP
+
+*** AC analysis for common mode gain
+.param fmin = 1
+.param fmax = 1Giga
+.AC dec 100 fmin fmax
+
+**********************************
+*	Measurements
+**********************************
+
+*** Plot signals
+.plot AC VDB(OUT) VP(OUT)
+
+*** Common mode gain (Acm)
+.extract AC label=Acm_dB_1Hz 'yval(VDB(OUT),1)'
+.extract AC label=Acm_dB_1kHz 'yval(VDB(OUT),1e3)'
+.extract AC label=Acm_dB_1MHz 'yval(VDB(OUT),1e6)'
+.extract AC label=Acm_dB_max 'max(VDB(OUT))'
+
+*** CMRR = Adm / Acm = Adm_dB - Acm_dB
+* Using Adm from TB_AC (approximately 71.8 dB for this design)
+.param Adm_dB = 71.8
+.extract AC label=CMRR_1Hz 'Adm_dB - yval(VDB(OUT),1)'
+.extract AC label=CMRR_1kHz 'Adm_dB - yval(VDB(OUT),1e3)'
+.extract AC label=CMRR_1MHz 'Adm_dB - yval(VDB(OUT),1e6)'
+
+*** DC operating point
+.extract DC label=VOUT_DC V(OUT)
+.extract DC label=Power '-V(VDD)*I(VVDD)'
+
+.end
