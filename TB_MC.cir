@@ -165,11 +165,6 @@ VVINp INP 0 DC VIN
 .extract MC label=std_Power mcstd(Power)
 .extract MC label=std_Vth1 mcstd(Vth1)
 
-*** Relative variations (sigma/mu in %)
-.extract MC label=var_Av0_pct '100*std_Av0/mean_Av0'
-.extract MC label=var_fT_pct '100*std_fT/mean_fT'
-.extract MC label=var_Power_pct '100*std_Power/mean_Power'
-
 *** Min/Max values for yield analysis
 .extract MC label=min_Av0 mcmin(Av0)
 .extract MC label=max_Av0 mcmax(Av0)
@@ -180,22 +175,12 @@ VVINp INP 0 DC VIN
 .extract MC label=min_Verror mcmin(V_error)
 .extract MC label=max_Verror mcmax(V_error)
 
-*** 3-sigma bounds
-.extract MC label=Av0_3sigma_low 'mean_Av0 - 3*std_Av0'
-.extract MC label=Av0_3sigma_high 'mean_Av0 + 3*std_Av0'
-.extract MC label=fT_3sigma_low 'mean_fT - 3*std_fT'
-.extract MC label=fT_3sigma_high 'mean_fT + 3*std_fT'
-.extract MC label=PM_3sigma_low 'mean_PM - 3*std_PM'
-.extract MC label=PM_3sigma_high 'mean_PM + 3*std_PM'
-.extract MC label=Verror_3sigma_low 'mean_Verror - 3*std_Verror'
-.extract MC label=Verror_3sigma_high 'mean_Verror + 3*std_Verror'
-
-*** Print all results to file
-.printfile MC meas(mean_Av0) meas(std_Av0) meas(var_Av0_pct) meas(min_Av0) meas(max_Av0) meas(Av0_3sigma_low) meas(Av0_3sigma_high) file=MC_Av0.txt format=data
-.printfile MC meas(mean_fT) meas(std_fT) meas(var_fT_pct) meas(min_fT) meas(max_fT) meas(fT_3sigma_low) meas(fT_3sigma_high) file=MC_fT.txt format=data
-.printfile MC meas(mean_PM) meas(std_PM) meas(min_PM) meas(max_PM) meas(PM_3sigma_low) meas(PM_3sigma_high) file=MC_PM.txt format=data
-.printfile MC meas(mean_Verror) meas(std_Verror) meas(min_Verror) meas(max_Verror) meas(Verror_3sigma_low) meas(Verror_3sigma_high) file=MC_Verror.txt format=data
-.printfile MC meas(mean_Power) meas(std_Power) meas(var_Power_pct) file=MC_Power.txt format=data
+*** Print results to file (only direct MC extracts, not calculated expressions)
+.printfile MC meas(mean_Av0) meas(std_Av0) meas(min_Av0) meas(max_Av0) file=MC_Av0.txt format=data
+.printfile MC meas(mean_fT) meas(std_fT) meas(min_fT) meas(max_fT) file=MC_fT.txt format=data
+.printfile MC meas(mean_PM) meas(std_PM) meas(min_PM) meas(max_PM) file=MC_PM.txt format=data
+.printfile MC meas(mean_Verror) meas(std_Verror) meas(min_Verror) meas(max_Verror) file=MC_Verror.txt format=data
+.printfile MC meas(mean_Power) meas(std_Power) file=MC_Power.txt format=data
 .printfile MC meas(mean_Vth1) meas(std_Vth1) file=MC_Vth1.txt format=data
 
 * #endcom

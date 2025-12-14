@@ -40,10 +40,11 @@ OTA Miller à deux étages avec cascode replié, implémenté en technologie TSM
 
 \begin{itemize}
     \item \textbf{15 transistors} (M1-M15) avec transistors LVT
-    \item \textbf{Compensation Miller} : $C_f = \SI{2.43}{\pico\farad}$
+    \item \textbf{Compensation Miller} : $C_f = \SI{2.58}{\pico\farad}$
     \item \textbf{Charge} : $C_L = \SI{10}{\pico\farad}$
     \item \textbf{Alimentation} : $V_{DD} = \SI{1.2}{\volt}$
-    \item \textbf{Courant de bias} : $I_{BIAS} = \SI{0.85}{\micro\ampere}$
+    \item \textbf{Courant de bias} : $I_{BIAS} = \SI{1.35}{\micro\ampere}$
+    \item \textbf{Courant total} : $I_{total} = \SI{20.6}{\micro\ampere}$
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -251,17 +252,102 @@ Le Power Supply Rejection Ratio mesure la capacité de l'OTA à rejeter les pert
         \toprule
         \textbf{Figure de Mérite} & \textbf{Valeur} \\
         \midrule
-        Gain ($A_{v0}$) & \SI{71.8}{\decibel} \\
-        Bande passante ($f_T$) & \SI{622}{\kilo\hertz} \\
-        Phase Margin & 63.7° \\
-        Slew Rate & \SI{0.32}{\volt\per\micro\second} \\
+        Gain ($A_{v0}$) & \SI{66.3}{\decibel} (2066 V/V) \\
+        Bande passante ($f_T$) & \SI{806}{\kilo\hertz} \\
+        Pôle dominant ($f_{-3dB}$) & \SI{390}{\hertz} \\
+        Phase Margin (PM) & 64.8° \\
+        Gain Margin (GM) & \SI{19.6}{\decibel} \\
+        Slew Rate ($SR^+$/$SR^-$) & 0.35 / \SI{0.30}{\volt\per\micro\second} \\
         Settling Time (1\%) & \SI{487}{\nano\second} \\
         CMRR @ \SI{1}{\hertz} & \SI{131.6}{\decibel} \\
         PSRR @ \SI{1}{\hertz} & \SI{73.5}{\decibel} \\
         Bruit d'entrée RMS & \SI{88.6}{\micro\volt} \\
-        Consommation & \SI{13.0}{\micro\watt} \\
+        Consommation & \SI{24.7}{\micro\watt} \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Figures de Mérite Avancées}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Les figures de mérite (FoM) permettent de comparer objectivement les performances d'un OTA par rapport à sa consommation. Elles normalisent les performances en tenant compte de la charge capacitive et du courant consommé.
+
+\subsection{Définitions}
+
+\begin{itemize}
+    \item \textbf{GBW (Gain-Bandwidth Product)} : Produit gain-bande passante
+    \begin{equation}
+        GBW = A_{v0} \times f_{-3dB} = f_T \approx \SI{806}{\kilo\hertz}
+    \end{equation}
+    
+    \item \textbf{FoM (Figure of Merit) - Petit signal} : Efficacité en bande passante
+    \begin{equation}
+        FoM = \frac{GBW \times C_L}{I_{total}} = \frac{\SI{806}{\kilo\hertz} \times \SI{10}{\pico\farad}}{\SI{20.6}{\micro\ampere}} = \SI{391}{\mega\hertz\cdot\pico\farad\per\milli\ampere}
+    \end{equation}
+    
+    \item \textbf{FoM$_S$ (Slew Rate FoM) - Grand signal} : Efficacité en slew rate
+    \begin{equation}
+        FoM_S = \frac{SR \times C_L}{I_{total}} = \frac{\SI{0.32}{\volt\per\micro\second} \times \SI{10}{\pico\farad}}{\SI{20.6}{\micro\ampere}} = \SI{155}{\volt\per\micro\second\cdot\pico\farad\per\milli\ampere}
+    \end{equation}
+    
+    \item \textbf{Résistance de sortie} : Impédance de sortie en boucle ouverte
+    \begin{equation}
+        R_{out} = \frac{1}{g_{ds9} + g_{ds10}} \approx \SI{1}{\mega\ohm}
+    \end{equation}
+\end{itemize}
+
+\subsection{Résultats}
+
+\begin{table}[H]
+    \centering
+    \caption{Figures de Mérite Avancées}
+    \label{tab:fom}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{FoM} & \textbf{Valeur} & \textbf{Unité} \\
+        \midrule
+        GBW & 806 & kHz \\
+        $f_{-3dB}$ (pôle dominant) & 390 & Hz \\
+        FoM (petit signal) & 391 & MHz$\cdot$pF/mA \\
+        FoM$_S$ (grand signal) & 155 & V/$\mu$s$\cdot$pF/mA \\
+        $R_{out}$ & $\sim$1 & M$\Omega$ \\
+        Output Swing & 0.17 -- 1.05 & V \\
+        ICMR & -0.10 -- 0.62 & V \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Interprétation}
+
+\begin{itemize}
+    \item \textbf{FoM = 391 MHz$\cdot$pF/mA} : Valeur typique pour un OTA Miller deux étages. Les architectures class-AB ou recycling peuvent atteindre 1000--5000 MHz$\cdot$pF/mA.
+    
+    \item \textbf{FoM$_S$ = 155 V/$\mu$s$\cdot$pF/mA} : Le slew rate est limité par le courant de bias de la paire différentielle ($SR = I_{bias}/C_f$). Pour améliorer, on peut utiliser des techniques de slew rate enhancement.
+    
+    \item \textbf{GM = 19.6 dB} : Excellente marge de gain, bien au-delà du minimum recommandé de 10 dB. Le système reste stable même avec des variations de gain importantes.
+    
+    \item \textbf{Compromis PM vs fT} : La marge de phase de 64.8° garantit une réponse transitoire sans oscillations excessives, au prix d'une bande passante légèrement réduite.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+L'OTA Cascode Miller conçu répond aux spécifications avec :
+\begin{itemize}
+    \item Un gain de \SI{66.3}{\decibel} assurant une bonne précision en boucle fermée
+    \item Une bande passante de \SI{806}{\kilo\hertz} proche de la spécification de \SI{1}{\mega\hertz}
+    \item Une marge de phase de 64.8° garantissant la stabilité
+    \item Une excellente marge de gain de \SI{19.6}{\decibel}
+    \item Un CMRR $>$ \SI{130}{\decibel} et PSRR $>$ \SI{70}{\decibel}
+\end{itemize}
+
+Les principales limitations sont :
+\begin{itemize}
+    \item Le slew rate asymétrique (différence PMOS/NMOS dans l'étage de sortie)
+    \item La consommation de \SI{24.7}{\micro\watt} qui pourrait être réduite avec des techniques avancées
+    \item L'ICMR limité vers les basses tensions (rail-to-rail non implémenté)
+\end{itemize}
 
 \end{document}

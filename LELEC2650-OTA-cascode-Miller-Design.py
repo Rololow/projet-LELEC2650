@@ -48,7 +48,7 @@ pch_hvt = settings.read_txt('data/pch_hvt.txt')
 # Specifications
 # =============================================================================
 
-fT_spec = 1e6
+fT_spec = 1.25e6
 CL = 10e-12
 PM_spec = 60 # °
 VDD = 1.2
@@ -67,15 +67,18 @@ L9 = L; L10= L9
 L11= L9; L12= L9
 L13= L9; L14= L9; L15= L9
 
-gmid1 = 18.0; gmid2 = gmid1
-gmid3 = 18.0; gmid4 = gmid3
-gmid5 = 18.0; gmid6 = gmid5
-gmid8 = 15.0; gmid7 = gmid8
-gmid9 = 18.0; # 14 18 todo :16 
-gmid10 = gmid8
-gmid11 = 18.0; gmid12 = gmid11; 
-gmid14 = gmid8; gmid13 = gmid14
-gmid15 = gmid5
+# gm/ID values - reduced to ensure saturation (not subthreshold/linear)
+# Higher gm/ID = weak inversion (low Vdsat but risk of linear region)
+# Lower gm/ID = strong inversion (higher Vdsat, guaranteed saturation)
+gmid1 = 12.0; gmid2 = gmid1   # Input pair: moderate inversion
+gmid3 = 12.0; gmid4 = gmid3   # Active load
+gmid5 = 10.0; gmid6 = gmid5   # Cascode NMOS: lower gm/ID for higher Vdsat
+gmid8 = 10.0; gmid7 = gmid8   # Current source NMOS: need good Vdsat margin
+gmid9 = 12.0;                 # Output PMOS
+gmid10 = 10.0                 # Output NMOS current source
+gmid11 = 12.0; gmid12 = gmid11;  # Tail current source
+gmid14 = 10.0; gmid13 = gmid14   # Bias transistors
+gmid15 = 10.0                    # Cascode bias
 
 M1 = pch_lvt; M2 = pch_lvt
 M3 = pch_lvt; M4 = pch_lvt
@@ -104,9 +107,18 @@ The sizing of Cf is done based on a desired PM, that depends on the parasitic
 capacitors. Those parasitics can only be evaluated when the transistor sizes are known.
 We thus use an iterative design flow where we update the values of the parasitic
 capacitances, until the required value of Cf stabilizes.
+
+ADDITIONAL POLE AT NODE N006:
+The cascode intermediate node (N006 = drain M2/M8, source M5) introduces a 
+parasitic pole that degrades phase margin:
+    p_N006 = gm5 / (2*pi * C_N006)
+    C_N006 = Cdb2 + Cgs5 + Cgso5 + Cdb8 + Cgdo8
+This pole must be included in PM calculation.
 """
 
-pnd_to_wT_ratio = 1 / np.tan(np.pi/2 - PM_spec*np.pi/180 - np.arctan(1/zero_to_wT_ratio)) # 2.2 with 60° PM (see lecture slides)
+# Note: pnd_to_wT_ratio will be computed iteratively to account for p_N006
+# Old formula (without p_N006): pnd_to_wT_ratio = 1 / np.tan(np.pi/2 - PM_spec*np.pi/180 - np.arctan(1/zero_to_wT_ratio))
+pnd_to_wT_ratio_init = 1 / np.tan(np.pi/2 - PM_spec*np.pi/180 - np.arctan(1/zero_to_wT_ratio)) # 2.2 with 60° PM (see lecture slides)
 
 Cf = CL # first guess
 
@@ -194,12 +206,42 @@ while error > max_error and iteration < max_iteration:
     Cgso10 = float(scint.interp1d(M10['GMID'], M10['CGS0'])(gmid10)) * W10
     Cbd10 = float(scint.interp1d(M10['GMID'], M10['CBD'])(gmid10)) * W10
     Cgdo10 = float(scint.interp1d(M10['GMID'], M10['CGD0'])(gmid10)) * W10
+    
+    # Parasitic capacitances at node N006 (cascode intermediate node)
+    # N006 = drain M2, drain M8, source M5
+    Cbd2 = float(scint.interp1d(M2['GMID'], M2['CBD'])(gmid2)) * W2
+    Cgdo2 = float(scint.interp1d(M2['GMID'], M2['CGD0'])(gmid2)) * W2
+    Cbd8 = float(scint.interp1d(M8['GMID'], M8['CBD'])(gmid8)) * W8
+    Cgdo8 = float(scint.interp1d(M8['GMID'], M8['CGD0'])(gmid8)) * W8
+    Cgs5_full = float(scint.interp1d(M5['GMID'], M5['CGS'])(gmid5)) * W5 * L5
+    Cgso5_full = float(scint.interp1d(M5['GMID'], M5['CGS0'])(gmid5)) * W5
+    Csb5 = float(scint.interp1d(M5['GMID'], M5['CBS'])(gmid5)) * W5 if 'CBS' in M5 else Cbd5 * 0.8  # Approximate if CBS not available
+    
+    # Capacitance at node N006
+    C_N006 = Cbd2 + Cgdo2 + Cbd8 + Cgdo8 + Cgs5_full + Cgso5_full
 
     C1 = Cgs9 + Cgso9 + Cbd5 + Cgdo5 + Cbd3 + Cgdo3
     C2 = CL + Cgdo10 + Cbd10 + Cgdo9 + Cbd9
+    
+    # Pole at node N006 (cascode intermediate node)
+    p_N006 = gm5 / (2*np.pi * C_N006)
+    
+    # Compute required pnd_to_wT_ratio accounting for p_N006
+    # PM = 90° - arctan(wT/pnd) - arctan(wT/z) - arctan(wT/p_N006)
+    # We need: arctan(wT/pnd) = 90° - PM - arctan(wT/z) - arctan(wT/p_N006)
+    wT_estimate = 2*np.pi * fT_spec
+    phase_from_zero = np.arctan(wT_estimate / (zero_to_wT_ratio * wT_estimate))  # arctan(1/zero_to_wT_ratio)
+    phase_from_pN006 = np.arctan(wT_estimate / (2*np.pi * p_N006)) if p_N006 > 0 else 0
+    
+    available_phase_for_pnd = np.pi/2 - PM_spec*np.pi/180 - phase_from_zero - phase_from_pN006
+    
+    if available_phase_for_pnd > 0.01:  # Ensure positive and reasonable
+        pnd_to_wT_ratio = 1 / np.tan(available_phase_for_pnd)
+    else:
+        pnd_to_wT_ratio = pnd_to_wT_ratio_init  # Fallback to initial estimate
 
     # Compute required Cf value for sufficient ratio pnd / wT (for phase margin)
-    # Same equation as in the lecture slides
+    # Same equation as in the lecture slides, but with updated pnd_to_wT_ratio
     Cf_new = pnd_to_wT_ratio / 2 / zero_to_wT_ratio * (C1+C2 + np.sqrt((C1+C2)**2 + 4*zero_to_wT_ratio/pnd_to_wT_ratio * C1*C2))
 
     error = abs((Cf_new - Cf)/Cf_new)
@@ -279,19 +321,23 @@ pd = GBW / gain
 pnd = gm10 * Cf / (2*np.pi * (C1*C2 + (C1+C2)*Cf))
 z = gm10 / (2*np.pi * Cf)
 
+# Additional pole at node N006 (already computed in loop, but recalculate for final values)
+p_N006_final = gm5 / (2*np.pi * C_N006)
+
 # =============================================================================
 # Transfer function plot
 # =============================================================================
 
 fmin = 1e0; fmax = 1e8
 f = np.logspace(np.log10(fmin),np.log10(fmax),1000)
-H = gain * (1 - 1j * f/z) / ((1 + 1j * f/pd) * (1 + 1j * f/pnd))
+# Transfer function now includes the parasitic pole at N006
+H = gain * (1 - 1j * f/z) / ((1 + 1j * f/pd) * (1 + 1j * f/pnd) * (1 + 1j * f/p_N006_final))
 
 Hdb = 20*np.log10(np.abs(H))
 Hangle = np.angle(H, deg=True)
 
 fig,ax = plt.subplots(2, 1, figsize=(18,10),sharex=True)
-ax[0].semilogx(f, Hdb,linewidth=3)
+ax[0].semilogx(f, Hdb,linewidth=3, label='With p_N006')
 ax[1].semilogx(f, Hangle,linewidth=3)
 ax[0].grid(True, which='major')
 ax[0].grid(True, which='minor', alpha=0.3)
@@ -359,3 +405,65 @@ print('SRint: {:2.3f} V/ms'.format(sr_int/1e3))
 print('SRext: {:2.3f} V/ms'.format(sr_ext/1e3))
 print('VIN: min/max = {:2.2f}/{:2.2f} V'.format(vin_min,vin_max))
 print('VOUT: min/max = {:2.2f}/{:2.2f} V'.format(vout_min,vout_max))
+
+# =============================================================================
+# Export sizing to sizing.cir for Eldo simulation
+# =============================================================================
+
+vin_dc = vin_min + (vin_max - vin_min)/2
+
+sizing_content = f"""* Auto-generated sizing parameters from Python script
+* DO NOT EDIT MANUALLY - Run LELEC2650-OTA-cascode-Miller-Design.py to update
+* Generated: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+*-----------------------------------------------
+
+*** Transistor dimensions
+
+.param W1 = {W1*1e6:.2f}u
+.param L1 = {L1*1e6:.0f}u
+.param W2 = W1
+.param L2 = L1
+
+.param W3 = {W3*1e6:.2f}u
+.param L3 = {L3*1e6:.0f}u
+.param W4 = W3
+.param L4 = L3
+
+.param W5 = {W5*1e6:.2f}u
+.param L5 = {L5*1e6:.0f}u
+.param W6 = W5
+.param L6 = L5
+
+.param W7 = {W7*1e6:.2f}u
+.param L7 = {L7*1e6:.0f}u
+.param W8 = W7
+.param L8 = L7
+
+.param W9 = {W9*1e6:.2f}u
+.param L9 = {L9*1e6:.0f}u
+.param W10 = {W10*1e6:.2f}u
+.param L10 = {L10*1e6:.0f}u
+.param W11 = {W11*1e6:.2f}u
+.param L11 = {L11*1e6:.0f}u
+.param W12 = {W12*1e6:.2f}u
+.param L12 = {L12*1e6:.0f}u
+.param W13 = {W13*1e6:.2f}u
+.param L13 = {L13*1e6:.0f}u
+.param W14 = {W14*1e6:.2f}u
+.param L14 = {L14*1e6:.0f}u
+.param W15 = {W15*1e6:.2f}u
+.param L15 = {L15*1e6:.0f}u
+
+.param Cf_val = {Cf*1e12:.2f}p
+
+*** Bias point
+
+.param VIN = {vin_dc:.2f}
+.param IBIAS = {IBIAS*1e6:.2f}u
+"""
+
+with open('sizing.cir', 'w') as f:
+    f.write(sizing_content)
+
+print('')
+print('>>> sizing.cir updated successfully!')

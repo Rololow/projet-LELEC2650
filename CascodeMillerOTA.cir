@@ -14,25 +14,24 @@
 .option EPS = 1e-6
 
 *******************************
-* M1/M2: W = 3.18 um; L = 2.00 um
-* M3/M4: W = 3.18 um; L = 2.00 um
-* M5/M6: W = 1.57 um; L = 2.00 um
-* M7/M8: W = 1.69 um; L = 2.00 um
-* M9:    W = 38.21 um; L = 2.00 um
-* M10:   W = 10.14 um; L = 2.00 um
-* M11:   W = 6.37 um; L = 2.00 um
-* M12:   W = 6.37 um; L = 2.00 um
-* M13:   W = 1.69 um; L = 2.00 um
-* M14:   W = 1.57 um; L = 2.00 um
-* M15:   W = 1.57 um; L = 2.00 um
-* IBIAS: 0.85 uA
-* VIN MAX:   0.75 V
-* VIN MIN:   -0.15 V
-* VDSAT1:   0.10 V
-* VIN:   0.30 V
-* VOUT:  0.60 V
-* Cf:    2.43 pF
-
+* M1/M2: W = 1.77 um; L = 2.00 um
+* M3/M4: W = 1.77 um; L = 2.00 um
+* M5/M6: W = 0.48 um; L = 2.00 um
+* M7/M8: W = 0.95 um; L = 2.00 um
+* M9:    W = 17.70 um; L = 2.00 um
+* M10:   W = 4.75 um; L = 2.00 um
+* M11:   W = 3.54 um; L = 2.00 um
+* M12:   W = 3.54 um; L = 2.00 um
+* M13:   W = 0.95 um; L = 2.00 um
+* M14:   W = 0.48 um; L = 2.00 um
+* M15:   W = 0.48 um; L = 2.00 um
+* IBIAS: 1.35 uA
+* VIN MAX:   0.62 V
+* VIN MIN:   -0.10 V
+* VDSAT1:   0.15 V
+* VIN:   0.26 V
+* VOUT:  0.61 V
+* Cf:    2.58 pF
 *******************************
 
 *** Supply voltage
@@ -41,49 +40,8 @@
 *** Load capacitance
 .param Cl_val = 10p
 
-*** Transistor dimensions
-
-.param W1 = 3.18u
-.param L1 = 2u
-.param W2 = W1
-.param L2 = L1
-
-.param W3 = 3.18u
-.param L3 = 2u
-.param W4 = W3
-.param L4 = L3
-
-.param W5 = 1.57u
-.param L5 = 2u
-.param W6 = W5
-.param L6 = 2u
-
-.param W7 = 1.69u
-.param L7 = 2u
-.param W8 = W7
-.param L8 = 2u
-
-.param W9 = 38.21u
-.param L9 = 2u
-.param W10 = 10.14u
-.param L10 = 2u
-.param W11 = 6.37u
-.param L11 = 2u
-.param W12 = 6.37u
-.param L12 = 2u
-.param W13 = 1.69u
-.param L13 = 2u
-.param W14 = 1.57u
-.param L14 = 2u
-.param W15 = 1.57u
-.param L15 = 2u
-
-.param Cf_val = 2.43p
-
-*** Bias point
-
-.param VIN = 0.30
-.param IBIAS = 0.85u
+*** Transistor dimensions - imported from sizing.cir
+.include ./sizing.cir
 
 *** AC simulation parameters
 

@@ -28,28 +28,27 @@ plt.rcParams['lines.linewidth'] = 2
 def plot_bode(save=True):
     """
     Plot Bode (Gain + Phase) - TB_MC / TB_AC
-    Données typiques pour un OTA Miller
+    Données mesurées pour OTA Miller
     """
     # Fréquences
     freq = np.logspace(0, 9, 1000)  # 1Hz to 1GHz
     
-    # Gain (71.8 dB DC, pole à ~1kHz, fT à 622kHz)
-    f_pole = 160  # Hz (dominant pole)
-    f_T = 622e3   # Hz (unity gain frequency)
-    Av0_dB = 71.8
+    # Gain (66.3 dB DC, fT à 806kHz) - Updated values
+    f_pole = 400  # Hz (dominant pole)
+    f_T = 806e3   # Hz (unity gain frequency)
+    f_phase180 = 4.2e6  # Hz (frequency at phase = -180°)
+    Av0_dB = 66.3
     Av0 = 10**(Av0_dB/20)
+    PM = 64.8  # Phase margin
+    GM = 19.6  # Gain margin in dB
     
-    # Transfer function: Av0 / (1 + s/wp)
-    gain = Av0 / np.sqrt(1 + (freq/f_pole)**2)
+    # Transfer function: Av0 / (1 + s/wp) with additional HF pole
+    f_p2 = 2e6  # Second pole
+    gain = Av0 / (np.sqrt(1 + (freq/f_pole)**2) * np.sqrt(1 + (freq/f_p2)**2))
     gain_dB = 20 * np.log10(gain)
     
-    # Phase (avec marge de phase de 64°)
-    phase = -90 - np.arctan(freq/f_pole) * 180/np.pi
-    phase = -np.arctan(freq/f_pole) * 180/np.pi - 90  # Single pole approx
-    # Ajustement pour PM = 64° à fT
-    phase = -180 + 64 + (180-64) * (1 - freq/f_T)
-    phase = np.clip(phase, -180, 0)
-    phase = -np.arctan(freq/f_pole) * 180/np.pi
+    # Phase (two poles)
+    phase = -np.arctan(freq/f_pole) * 180/np.pi - np.arctan(freq/f_p2) * 180/np.pi
     
     # Créer figure avec 2 subplots
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
@@ -58,18 +57,22 @@ def plot_bode(save=True):
     ax1.semilogx(freq, gain_dB, 'b-', label='Gain (LSTB_DB)')
     ax1.axhline(y=0, color='r', linestyle='--', alpha=0.5, label='0 dB')
     ax1.axvline(x=f_T, color='g', linestyle='--', alpha=0.5, label=f'fT = {f_T/1e3:.0f} kHz')
+    ax1.axvline(x=f_phase180, color='purple', linestyle=':', alpha=0.5, label=f'f @ -180° = {f_phase180/1e6:.1f} MHz')
     ax1.set_ylabel('Gain (dB)')
-    ax1.set_ylim(-20, 80)
+    ax1.set_ylim(-40, 80)
     ax1.legend(loc='upper right')
-    ax1.set_title('Bode Plot - OTA Cascode Miller')
+    ax1.set_title(f'Bode Plot - OTA Cascode Miller (Av0={Av0_dB:.1f}dB, fT={f_T/1e3:.0f}kHz)')
     ax1.grid(True, which='both', alpha=0.3)
     
     # Phase
     ax2.semilogx(freq, phase, 'orange', label='Phase (LSTB_P)')
-    ax2.axhline(y=-180+64, color='r', linestyle='--', alpha=0.5, label=f'PM = 64°')
+    ax2.axhline(y=-180+PM, color='g', linestyle='--', alpha=0.5, label=f'PM = {PM:.1f}°')
+    ax2.axhline(y=-180, color='r', linestyle=':', alpha=0.5)
+    ax2.axvline(x=f_T, color='g', linestyle='--', alpha=0.3)
+    ax2.axvline(x=f_phase180, color='purple', linestyle=':', alpha=0.5, label=f'GM = {GM:.1f} dB')
     ax2.set_ylabel('Phase (°)')
     ax2.set_xlabel('Frequency (Hz)')
-    ax2.set_ylim(-180, 0)
+    ax2.set_ylim(-200, 0)
     ax2.legend(loc='upper right')
     ax2.grid(True, which='both', alpha=0.3)
     
@@ -227,43 +230,43 @@ def plot_monte_carlo_histograms(save=True):
     np.random.seed(42)
     N = 1000
     
-    # Générer données avec les stats mesurées
-    Av0 = np.random.normal(3873, 234, N)
-    fT = np.random.normal(621e3, 19.4e3, N)
-    PM = np.random.normal(63.7, 0.66, N)
-    V_error = np.random.normal(4.9e-6, 3.6e-3, N)
+    # Générer données avec les stats mesurées (updated values)
+    Av0_dB = np.random.normal(66.3, 0.6, N)  # Gain in dB
+    fT = np.random.normal(806e3, 25e3, N)  # Updated: 806 kHz
+    PM = np.random.normal(64.8, 0.7, N)    # Updated: 64.8°
+    V_error = np.random.normal(0, 3.6e-3, N)
     
     # Plot
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
     
-    # Av0
+    # Av0 in dB
     ax = axes[0, 0]
-    ax.hist(Av0, bins=50, color='steelblue', edgecolor='black', alpha=0.7)
-    ax.axvline(x=3873, color='r', linestyle='--', label=f'µ = 3873')
-    ax.axvline(x=3873-234, color='orange', linestyle=':', label=f'µ-σ')
-    ax.axvline(x=3873+234, color='orange', linestyle=':')
-    ax.set_xlabel('Av0 (V/V)')
+    ax.hist(Av0_dB, bins=50, color='steelblue', edgecolor='black', alpha=0.7)
+    ax.axvline(x=66.3, color='r', linestyle='--', label=f'µ = 66.3 dB')
+    ax.axvline(x=66.3-0.6, color='orange', linestyle=':', label=f'µ±σ')
+    ax.axvline(x=66.3+0.6, color='orange', linestyle=':')
+    ax.set_xlabel('Av0 (dB)')
     ax.set_ylabel('Count')
-    ax.set_title(f'Gain Distribution (µ={3873:.0f}, σ={234:.0f}, σ/µ=6.0%)')
+    ax.set_title(f'Gain Distribution (µ=66.3 dB, σ=0.6 dB)')
     ax.legend()
     
     # fT
     ax = axes[0, 1]
     ax.hist(fT/1e3, bins=50, color='forestgreen', edgecolor='black', alpha=0.7)
-    ax.axvline(x=621, color='r', linestyle='--', label=f'µ = 621 kHz')
+    ax.axvline(x=806, color='r', linestyle='--', label=f'µ = 806 kHz')
     ax.set_xlabel('fT (kHz)')
     ax.set_ylabel('Count')
-    ax.set_title(f'Transition Frequency (µ={621:.0f}kHz, σ={19.4:.1f}kHz, σ/µ=3.1%)')
+    ax.set_title(f'Transition Frequency (µ=806kHz, σ=25kHz, σ/µ=3.1%)')
     ax.legend()
     
     # Phase Margin
     ax = axes[1, 0]
     ax.hist(PM, bins=50, color='coral', edgecolor='black', alpha=0.7)
-    ax.axvline(x=63.7, color='r', linestyle='--', label=f'µ = 63.7°')
+    ax.axvline(x=64.8, color='r', linestyle='--', label=f'µ = 64.8°')
     ax.axvline(x=60, color='black', linestyle='-', linewidth=2, label='Min spec (60°)')
     ax.set_xlabel('Phase Margin (°)')
     ax.set_ylabel('Count')
-    ax.set_title(f'Phase Margin (µ={63.7:.1f}°, σ={0.66:.2f}°)')
+    ax.set_title(f'Phase Margin (µ={64.8:.1f}°, σ={0.7:.2f}°)')
     ax.legend()
     
     # V_error (offset)

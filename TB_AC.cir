@@ -9,6 +9,9 @@
 *** Include device netlist (CascodeMillerOTA defines device sizes and internal params)
 .include ./CascodeMillerOTA.cir
 
+***** Supply voltage *****
+VVDD VDD GND DC vdd_val
+
 ***** DC & AC *****
 
 VVINp INp GND DC VIN AC +V0

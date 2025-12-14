@@ -1,0 +1,98 @@
+* Cascode Miller OTA - Figures of Merit Testbench
+* LELEC2650 Project
+* Calculates: FoM, ICMR, Output Swing, Gain Margin, Rout
+*-----------------------------------------------
+
+************************************
+*	Library & Technology settings
+************************************
+
+.lib '/dir/TECHNOLOGY/cds2024/TSMC-N65/CMOS/LP/pdk/models/eldo/toplevel.eldo' tt_lib
+
+*** Include device netlist
+.include ./CascodeMillerOTA.cir
+
+***** Supply voltage *****
+VVDD VDD GND DC vdd_val
+
+*******************************
+*	Stimuli - Open loop with LSTB
+*******************************
+
+*** Pseudo closed-loop with LSTB for AC analysis
+VSTB INm OUT
+VVINp INp GND DC VIN
+.LSTB VSTB
+
+**********************************
+*	Simulations
+**********************************
+
+.OP
+
+*** AC for gain/phase margins
+.AC dec 50 1 1e9
+
+*** DC sweep for ICMR and output swing
+.DC VVINp 0 1.2 10m
+
+**********************************
+*	Measurements - Operating Point
+**********************************
+
+*** Total current consumption
+.extract DC label=I_total '-I(VVDD)'
+.extract DC label=Power 'V(VDD)*(-I(VVDD))'
+
+*** Output resistance (from small-signal parameters)
+.extract DC label=gds9 gds(xM9.MAIN)
+.extract DC label=gds10 gds(xM10.MAIN)
+.extract DC label=Rout '1/(gds(xM9.MAIN) + gds(xM10.MAIN))'
+
+**********************************
+*	Measurements - AC (Gain & Phase Margins)
+**********************************
+
+*** Gain
+.extract AC label=Av0_dB 'max(LSTB_DB)'
+.extract AC label=Av0 '10^(max(LSTB_DB)/20)'
+
+*** Transition frequency
+.extract AC label=fT 'xthres(LSTB_DB, 0)'
+
+*** Phase Margin
+.extract AC label=Phase_Margin '180 - yval(LSTB_P,1) + xycond(LSTB_P, LSTB_DB<0)'
+
+*** Gain Margin: gain at frequency where phase crosses 0° (= -180° absolute)
+.extract AC label=f_phase180 'xthres(LSTB_P, 0)'
+.extract AC label=Gain_Margin '-yval(LSTB_DB, xthres(LSTB_P, 0))'
+
+**********************************
+*	Measurements - DC Sweep (ICMR & Output Swing)
+**********************************
+
+*** Output swing from DC sweep
+.extract DC label=VOUT_min 'ymin(V(OUT))'
+.extract DC label=VOUT_max 'ymax(V(OUT))'
+.extract DC label=Output_Swing 'ymax(V(OUT)) - ymin(V(OUT))'
+
+*** ICMR - sample output at different input levels
+.extract DC label=VOUT_at_VIN_0p2 'yval(V(OUT), 0.2)'
+.extract DC label=VOUT_at_VIN_0p6 'yval(V(OUT), 0.6)'
+.extract DC label=VOUT_at_VIN_1p0 'yval(V(OUT), 1.0)'
+
+**********************************
+*	Figure of Merit
+**********************************
+
+*** FoM = fT * CL / I_total [MHz*pF/µA]
+*** Calculated in post-processing from fT, CL, I_total
+
+*** CL value for reference
+.extract DC label=CL_pF 'Cl_val * 1e12'
+
+*** Print summary
+.plot AC LSTB_DB LSTB_P
+.plot DC V(OUT) V(INp)
+
+.end
