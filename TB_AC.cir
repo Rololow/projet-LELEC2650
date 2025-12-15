@@ -127,3 +127,22 @@ VVINm INm GND DC VIN AC -V0
 *** Bode diagram (amplitude and phase)
 .plot AC w(Av1) w(Av2)
 .plot AC w(Av)
+
+* ------------------------------------------------------------------
+* Example exports (uncomment to enable). These produce ASCII .txt
+* files that `plot_results.py` can read as `diff_gain.txt` / `cm_gain.txt` / `vdd_out.txt`.
+* Syntax may need slight adjustments depending on your Eldo version.
+*
+* Export differential gain (frequency, Av_dB) to diff_gain.txt
+.printfile AC VDB(Av) file=diff_gain.txt format=data
+.printfile AC VP(Av) file=diff_phase.txt format=data
+*
+* Export common-mode gain (run TB_CMRR.cir with common-mode stimulus), output to cm_gain.txt
+* .printfile AC VDB(OUT) file=cm_gain.txt format=xy
+*
+* Export VDD->OUT transfer (run TB_PSRR.cir where VVDD has AC 1) to vdd_out.txt
+* .printfile AC VDB(OUT) file=vdd_out.txt format=xy
+*
+* After running Eldo, these files will contain two columns: frequency (Hz) and magnitude (dB)
+* which `plot_results.py` will interpolate and use for CMRR/PSRR plots.
+* ------------------------------------------------------------------

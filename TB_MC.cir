@@ -133,9 +133,9 @@ VVINp INP 0 DC VIN
 
 .OP
 
-.param fmin = 1
-.param fmax = 1Giga
-.AC dec 100 fmin fmax
+.param fmin_mc = 1
+.param fmax_mc = 1Giga
+.AC dec 100 fmin_mc fmax_mc
 
 
 ***** Monte-Carlo Analysis ******
@@ -182,6 +182,21 @@ VVINp INP 0 DC VIN
 .printfile MC meas(mean_Verror) meas(std_Verror) meas(min_Verror) meas(max_Verror) file=MC_Verror.txt format=data
 .printfile MC meas(mean_Power) meas(std_Power) file=MC_Power.txt format=data
 .printfile MC meas(mean_Vth1) meas(std_Vth1) file=MC_Vth1.txt format=data
+* Duplicate lowercase filenames expected by plotting scripts
+.printfile MC meas(mean_Av0) meas(std_Av0) meas(min_Av0) meas(max_Av0) file=mc_Av0.txt format=data
+.printfile MC meas(mean_fT) meas(std_fT) meas(min_fT) meas(max_fT) file=mc_fT.txt format=data
+.printfile MC meas(mean_PM) meas(std_PM) meas(min_PM) meas(max_PM) file=mc_PM.txt format=data
+.printfile MC meas(mean_Verror) meas(std_Verror) meas(min_Verror) meas(max_Verror) file=mc_offset.txt format=data
+.printfile MC meas(mean_Power) meas(std_Power) file=mc_Power.txt format=data
+.printfile MC meas(mean_Vth1) meas(std_Vth1) file=mc_Vth1.txt format=data
+* Per-run Monte Carlo raw values were removed to avoid invalid .printfile syntax; use MC_* summary files or reconfigure simulation to output per-run data correctly.
+
+*** Per-run Monte Carlo exports
+* The following lines attempt to export per-run measured values (one row per MC run).
+* Eldo accepts `meas(<measure>)` inside .printfile MC to output the measure value for each run.
+* If your Eldo version accepts this, these files will contain a column per measure per run.
+.printfile MC meas(Av0) meas(fT) meas(Phase_Margin) meas(V_error) file=mc_raw.txt format=data
+.printfile MC meas(Av0) meas(fT) meas(Phase_Margin) meas(V_error) file=MC_raw.txt format=data
 
 * #endcom
 

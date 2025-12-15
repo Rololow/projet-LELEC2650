@@ -63,6 +63,10 @@ VVINp INp GND PULSE V_LOW V_HIGH T_DELAY T_RISE T_FALL T_PULSE T_PERIOD
 *** Plot signals
 .plot TRAN V(INp) V(OUT)
 
+* Export transient output trace for slew-rate analysis
+.printfile TRAN V(OUT) file=sr_up.txt format=data
+.printfile TRAN V(OUT) file=sr_down.txt format=data
+
 *** Slew Rate measurements
 * SR+ : Rising slew rate (V/us)
 * Measure between 10% and 90% of the output swing

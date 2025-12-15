@@ -1,48 +1,48 @@
 * Auto-generated sizing parameters from Python script
 * DO NOT EDIT MANUALLY - Run LELEC2650-OTA-cascode-Miller-Design.py to update
-* Generated: 2025-12-14 19:44:02
+* Generated: 2025-12-15 19:29:25
 *-----------------------------------------------
 
 *** Transistor dimensions
 
-.param W1 = 2.29u
+.param W1 = 1.77u
 .param L1 = 2u
 .param W2 = W1
 .param L2 = L1
 
-.param W3 = 2.29u
+.param W3 = 1.77u
 .param L3 = 2u
 .param W4 = W3
 .param L4 = L3
 
-.param W5 = 0.62u
+.param W5 = 0.48u
 .param L5 = 2u
 .param W6 = W5
 .param L6 = L5
 
-.param W7 = 1.23u
+.param W7 = 0.95u
 .param L7 = 2u
 .param W8 = W7
 .param L8 = L7
 
-.param W9 = 22.93u
+.param W9 = 17.70u
 .param L9 = 2u
-.param W10 = 6.16u
+.param W10 = 4.75u
 .param L10 = 2u
-.param W11 = 4.59u
+.param W11 = 3.54u
 .param L11 = 2u
-.param W12 = 4.59u
+.param W12 = 3.54u
 .param L12 = 2u
-.param W13 = 1.23u
+.param W13 = 0.95u
 .param L13 = 2u
-.param W14 = 0.62u
+.param W14 = 0.48u
 .param L14 = 2u
-.param W15 = 0.62u
+.param W15 = 0.48u
 .param L15 = 2u
 
-.param Cf_val = 2.67p
+.param Cf_val = 2.58p
 
 *** Bias point
 
 .param VIN = 0.26
-.param IBIAS = 1.75u
+.param IBIAS = 1.35u

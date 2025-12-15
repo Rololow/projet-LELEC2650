@@ -95,4 +95,8 @@ VVINp INp GND DC VIN
 .plot AC LSTB_DB LSTB_P
 .plot DC V(OUT) V(INp)
 
+*** Export selected FoMs to ASCII for post-processing
+* Columns: Av0dB Av0 fT Phase_Margin Power
+.printfile AC meas(Av0_dB) meas(Av0) meas(fT) meas(Phase_Margin) meas(Power) file=FOM_results.txt format=data
+
 .end

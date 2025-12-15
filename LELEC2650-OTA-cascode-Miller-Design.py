@@ -48,7 +48,7 @@ pch_hvt = settings.read_txt('data/pch_hvt.txt')
 # Specifications
 # =============================================================================
 
-fT_spec = 1.25e6
+fT_spec = 1.0e6
 CL = 10e-12
 PM_spec = 60 # °
 VDD = 1.2
@@ -316,7 +316,9 @@ gain_s3 = gmid10 * vea_eq_s3
 gain = gain_s1 * gain_s2 * gain_s3
 
 # Poles, zeros and GBW of Miller
-GBW = gm5 / (2*np.pi * Cf)
+# Use gm1 to compute GBW so the target `fT_spec` (set via gm1 earlier)
+# is enforced consistently (gm1 was computed as omega_T * Cf).
+GBW = gm1 / (2*np.pi * Cf)
 pd = GBW / gain
 pnd = gm10 * Cf / (2*np.pi * (C1*C2 + (C1+C2)*Cf))
 z = gm10 / (2*np.pi * Cf)

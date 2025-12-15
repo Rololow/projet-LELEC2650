@@ -37,17 +37,14 @@ VVDD VDD GND DC vdd_val
 .param NOISE_OUT_FMAX = 100Meg  
 
 ** Must be = pi/2 * fT (adjust based on your design's transition frequency)
-.param NOISE_IN_FMAX = 1.5708e6 
+.param NOISE_IN_FMAX = 1.2566e6 
 
 * Open-loop operation
 VVIN_DC IN_DC GND DC VIN
 VVIN_AC IN_AC IN_DC DC 0.0 AC V0
 EVINp INp IN_DC VCVS IN_AC IN_DC 0.5 * Voltage-controlled voltage source
 EVINm INm IN_DC VCVS IN_AC IN_DC -0.5 * Voltage-controlled voltage source
-* Weird construction here: we try to have only one AC source in order to 
-* correctly reference the input source in the noise analysis
 
-* Noise PSDs in V^2/Hz
 .option IKF2    
 
 *Output node and input source given as parameters for total output and input noise PSDs
@@ -76,6 +73,10 @@ EVINm INm IN_DC VCVS IN_AC IN_DC -0.5 * Voltage-controlled voltage source
 .param fmin = 1
 .param fmax = 1Giga
 .AC dec 100 fmin fmax
+
+* Export noise trace (frequency, output_noise) to ASCII for plotting
+.printfile NOISE ONOISE file=noise_out.txt format=data
+.printfile NOISE INOISE file=noise_in.txt format=data
 
 * #endcom
 

@@ -31,11 +31,9 @@ VVDD VDD GND DC vdd_val AC 1
 * Apply AC signal on VDD
 * Measure output response
 
-.param V_IN_DC = 0.5
-
 * Input bias (no AC, both inputs at same DC)
-VVINp INp GND DC V_IN_DC
-VVINm INm GND DC V_IN_DC
+VVINp INp GND DC VIN
+VVINm INm GND DC VIN
 
 **********************************
 *	Simulations
@@ -44,9 +42,8 @@ VVINm INm GND DC V_IN_DC
 .OP
 
 *** AC analysis for PSRR
-.param fmin = 1
-.param fmax = 1Giga
-.AC dec 100 fmin fmax
+* Use the global AC parameters from the device include so all TBs share the same grid
+.AC dec ac_dec fmin fmax
 
 **********************************
 *	Measurements
@@ -65,14 +62,26 @@ VVINm INm GND DC V_IN_DC
 .extract AC label=Avdd_dB_max 'max(VDB(OUT))'
 
 *** PSRR = Adm / Avdd = Adm_dB - Avdd_dB
-* Using Adm from TB_AC (approximately 71.8 dB for this design)
-.param Adm_dB = 71.8
-.extract AC label=PSRR_1Hz 'Adm_dB - yval(VDB(OUT),1)'
-.extract AC label=PSRR_1kHz 'Adm_dB - yval(VDB(OUT),1e3)'
-.extract AC label=PSRR_1MHz 'Adm_dB - yval(VDB(OUT),1e6)'
+* Compute PSRR directly from the VDD->OUT transfer (dB): PSRR_dB = -VDB(OUT)
+.extract AC label=PSRR_1Hz '-yval(VDB(OUT),1)'
+.extract AC label=PSRR_1kHz '-yval(VDB(OUT),1e3)'
+.extract AC label=PSRR_1MHz '-yval(VDB(OUT),1e6)'
+.extract AC label=PSRR_dB_max 'max(-yval(VDB(OUT),1), max(-yval(VDB(OUT),1e3), -yval(VDB(OUT),1e6)))'
 
 *** DC operating point
 .extract DC label=VOUT_DC V(OUT)
 .extract DC label=Power '-V(VDD)*I(VVDD)'
+
+* ------------------------------------------------------------------
+* Example export (ASCII) for VDD->OUT transfer (frequency, VDB(OUT))
+* Write `vdd_out.txt` which `plot_results.py` can read for PSRR.
+*
+.printfile AC VDB(OUT) file=vdd_out.txt format=data
+*
+* Also allow case-insensitive alternative name sometimes produced by tools
+.printfile AC VDB(OUT) file=VDD_OUT.txt format=data
+*
+* Note: ensure `VVDD VDD GND DC vdd_val AC 1` is present (it is), then run this TB.
+* ------------------------------------------------------------------
 
 .end

@@ -30,7 +30,7 @@ VVDD VDD GND DC vdd_val
 * Apply same AC signal to both inputs (common mode)
 * Measure output response
 
-.param V_CM_DC = 0.5
+.param V_CM_DC = VIN
 .param V_AC = 1m
 
 * Common mode input: same signal on both inputs
@@ -44,9 +44,8 @@ VVINm INm GND DC V_CM_DC AC V_AC
 .OP
 
 *** AC analysis for common mode gain
-.param fmin = 1
-.param fmax = 1Giga
-.AC dec 100 fmin fmax
+* Use the global AC parameters from the device include so all TBs share the same grid
+.AC dec ac_dec fmin fmax
 
 **********************************
 *	Measurements
@@ -61,15 +60,22 @@ VVINm INm GND DC V_CM_DC AC V_AC
 .extract AC label=Acm_dB_1MHz 'yval(VDB(OUT),1e6)'
 .extract AC label=Acm_dB_max 'max(VDB(OUT))'
 
-*** CMRR = Adm / Acm = Adm_dB - Acm_dB
-* Using Adm from TB_AC (approximately 71.8 dB for this design)
-.param Adm_dB = 71.8
-.extract AC label=CMRR_1Hz 'Adm_dB - yval(VDB(OUT),1)'
-.extract AC label=CMRR_1kHz 'Adm_dB - yval(VDB(OUT),1e3)'
-.extract AC label=CMRR_1MHz 'Adm_dB - yval(VDB(OUT),1e6)'
+*** Note: CMRR will be computed in python by subtracting cm_gain (this file)
+*** from the differential gain exported by `TB_AC.cir` (diff_gain.txt).
 
 *** DC operating point
 .extract DC label=VOUT_DC V(OUT)
 .extract DC label=Power '-V(VDD)*I(VVDD)'
+
+* ------------------------------------------------------------------
+* Example export (ASCII) for common-mode gain (frequency, Av_cm_dB)
+* Uncomment to write `cm_gain.txt` which `plot_results.py` can read.
+* Syntax may vary with Eldo versions; adjust if needed.
+*
+.printfile AC VDB(OUT) file=cm_gain.txt format=data
+*
+* To create the differential gain file, run `TB_AC.cir` (differential stimulus)
+* and enable the diff export in that TB (see diff_gain.txt example there).
+* ------------------------------------------------------------------
 
 .end
